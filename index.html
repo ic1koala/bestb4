@@ -122,16 +122,38 @@
 
     /* Bottom Nav */
     #bottom-nav {
-      position: absolute; bottom: 24px; left: 24px; right: 24px; height: 68px;
-      background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px);
-      border-radius: 24px; border: 1px solid var(--glass-border);
-      display: none; justify-content: space-around; align-items: center; z-index: 100;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+      position: absolute; bottom: 12px; left: 12px; right: 12px; height: 74px;
+      background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
+      border-radius: 32px; border: 1px solid rgba(255,255,255,0.3);
+      display: none; justify-content: space-between; align-items: center; z-index: 1000;
+      padding: 0 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
-    .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; transition: 0.2s; font-size: 0.65rem; font-weight: 700; width: 18%; }
+    .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; transition: 0.2s; width: 18%; }
     .nav-btn.active { color: var(--primary); }
     .nav-btn svg { width: 22px; height: 22px; stroke-width: 2.2; }
-    .nav-cam-btn { width: 56px; height: 56px; background: var(--primary); border-radius: 50%; display: flex; justify-content: center; align-items: center; transform: translateY(-15px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); border: 4px solid #fff; }
+    .nav-btn span { font-size: 0.6rem; font-weight: 800; }
+    
+    .nav-add-btn { width: 56px; height: 56px; background: var(--primary); border-radius: 50%; display: flex; justify-content: center; align-items: center; transform: translateY(-20px); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); border: 5px solid #fff; transition: 0.3s; }
+    .nav-add-btn:active { transform: translateY(-20px) scale(0.9); }
+    .nav-add-btn svg { width: 32px; height: 32px; stroke: #fff; stroke-width: 3; }
+
+    /* Calendar */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; border-radius: 20px; overflow: hidden; margin-bottom: 30px; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-top: 20px; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px; }
+    .cal-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+    .cal-day-label { text-align: center; font-size: 0.65rem; font-weight: 800; color: #94a3b8; padding: 8px 0; }
+    .cal-cell { background: #f8fafc; aspect-ratio: 1/1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-weight: 800; font-size: 0.9rem; color: #334155; }
+    .cal-cell.other-month { opacity: 0.3; font-weight: 400; }
+    .cal-cell.today { background: var(--primary); color: #fff; }
+    .cal-badge { position: absolute; top: 4px; right: 4px; padding: 2px 5px; background: #ef4444; color: #fff; font-size: 0.55rem; border-radius: 6px; font-weight: 900; line-height: 1; min-width: 14px; text-align: center; }
+
+    /* Action Menu Overlay */
+    #action-menu { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); z-index: 2000; display: none; flex-direction: column; justify-content: flex-end; padding: 40px 20px 140px; }
+    #action-menu.active { display: flex; }
+    .action-options { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 400px; margin: 0 auto; }
+    .action-item { background: #fff; padding: 18px 24px; border-radius: 24px; display: flex; align-items: center; gap: 16px; font-weight: 800; font-size: 1rem; color: #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: popUp 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28) both; }
+    .action-item i { width: 44px; height: 44px; background: #f1f5f9; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    @keyframes popUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
     #toast { position: absolute; top: 44px; left: 50%; transform: translateX(-50%) translateY(-20px); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 40px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 2000; text-align: center; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -248,6 +270,13 @@
     </div>
   </div>
 
+  <!-- 4. Calendar Screen -->
+  <div id="calendar-screen" class="screen" style="padding:40px 24px 100px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <h2 style="font-weight:800; margin-bottom:20px;">カレンダー</h2>
+    <div id="calendar-container"></div>
+    <div id="cal-details" style="margin-top:24px;"></div>
+  </div>
+
   <!-- 5. Link Screen -->
   <div id="link-screen" class="screen" style="padding:60px 24px;">
     <h2 style="font-weight:800; margin-bottom:24px;">外部サービス連係</h2>
@@ -324,12 +353,32 @@
   </div>
 
   <!-- Bottom Nav -->
+  <!-- 8. Action Menu Overlay -->
+  <div id="action-menu" onclick="app.toggleActionMenu()">
+    <div class="action-options" onclick="event.stopPropagation()">
+      <div class="action-item" onclick="app.startCamera(); app.toggleActionMenu();">
+        <i style="background:#ecfdf5; color:#10b981;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></i>
+        <span>カメラで読み取る</span>
+      </div>
+      <div class="action-item" onclick="document.getElementById('file-upload').click(); app.toggleActionMenu();">
+        <i style="background:#eff6ff; color:#3b82f6;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></i>
+        <span>写真をアップロード</span>
+        <input type="file" id="file-upload" hidden accept="image/*" onchange="app.handleFileUpload(event)">
+      </div>
+      <div class="action-item" onclick="app.openManualEntry(); app.toggleActionMenu();">
+        <i style="background:#fef2f2; color:#ef4444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></i>
+        <span>手入力で登録</span>
+      </div>
+      <div onclick="app.toggleActionMenu()" style="text-align:center; padding-top:10px; font-weight:800; color:#fff; font-size:1.2rem;">✕</div>
+    </div>
+  </div>
+
   <div id="bottom-nav">
-    <div class="nav-btn active" onclick="app.showScreen('list-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>リスト</div>
-    <div class="nav-btn" onclick="app.showScreen('link-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>連係</div>
-    <div class="nav-cam-btn" onclick="app.startCamera()"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>履歴</div>
-    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>設定</div>
+    <div class="nav-btn active" onclick="app.showScreen('list-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg><span>リスト</span></div>
+    <div class="nav-btn" onclick="app.showScreen('calendar-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>カレンダー</span></div>
+    <div class="nav-add-btn" onclick="app.toggleActionMenu()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div class="nav-btn" onclick="app.showScreen('link-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>連携</span></div>
+    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>設定</span></div>
   </div>
 
 </div>
@@ -397,12 +446,18 @@
       else { setTimeout(() => t.classList.add('active'), 50); }
       
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      const navIds = {'list-screen':0, 'link-screen':1, 'settings-screen':4};
+      const navIds = {'list-screen':0, 'calendar-screen':1, 'link-screen':2, 'settings-screen':3};
+      if(id === 'calendar-screen') this.renderCalendar();
       if(id === 'settings-screen') {
           this.renderHistory();
           if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
       }
       if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
+    },
+
+    toggleActionMenu() {
+        const menu = document.getElementById('action-menu');
+        menu.classList.toggle('active');
     },
 
     async renderList() {
@@ -483,7 +538,7 @@
       el.addEventListener('touchmove', (e) => {
         if (!isSwiping) return;
         currentX = e.touches[0].clientX - startX;
-        if (currentX > 0) { // Only swipe right
+        if (currentX > 0) {
           el.style.transform = `translateX(${currentX}px)`;
           bg.style.opacity = Math.min(currentX / 100, 1);
           if (currentX > 10) el.dataset.swiping = 'true';
@@ -571,6 +626,79 @@
       };
     },
 
+    async renderCalendar() {
+        const container = document.getElementById('calendar-container');
+        container.innerHTML = "";
+        const allItems = await this.getAllItems();
+        const activeItems = allItems.filter(i => !i.archivedAt);
+        const now = new Date();
+        
+        // 前1ヶ月から後12ヶ月分を表示
+        for (let m = -1; m <= 12; m++) {
+            const calDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
+            const year = calDate.getFullYear();
+            const month = calDate.getMonth();
+            
+            // 月ヘッダー
+            const header = document.createElement('div');
+            header.className = 'cal-header';
+            header.innerHTML = `<h3>${year}年${month + 1}月</h3>`;
+            container.appendChild(header);
+
+            // グリッド
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+            
+            // 曜日ラベル
+            ["日","月","火","水","木","金","土"].forEach(d => {
+                const el = document.createElement('div'); el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el);
+            });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for(let i=0; i<42; i++) {
+                const dayNum = i - firstDay + 1;
+                const cell = document.createElement('div');
+                cell.className = 'cal-cell';
+                if (dayNum > 0 && dayNum <= daysInMonth) {
+                    cell.innerText = dayNum;
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+                    if (dateStr === new Date().toISOString().split('T')[0]) cell.classList.add('today');
+                    
+                    const expiring = activeItems.filter(item => item.exp === dateStr);
+                    if (expiring.length > 0) {
+                        const badge = document.createElement('div');
+                        badge.className = 'cal-badge';
+                        badge.innerText = expiring.length;
+                        cell.appendChild(badge);
+                        cell.onclick = () => this.showCalendarDetails(dateStr, expiring);
+                    }
+                } else {
+                    cell.classList.add('other-month');
+                }
+                grid.appendChild(cell);
+                // 次の月の行に入ったら終了（グリッドの端まで埋める）
+                if (dayNum > daysInMonth && i % 7 === 0) break;
+            }
+            container.appendChild(grid);
+        }
+    },
+
+    showCalendarDetails(date, items) {
+        const detail = document.getElementById('cal-details');
+        detail.innerHTML = `
+            <div style="font-weight:800; margin-bottom:12px; font-size:0.9rem;">${date} の期限切れアイテム:</div>
+            ${items.map(item => `
+                <div style="display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; margin-bottom:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                    <span>${this.getIcon(item.name, item.cat)}</span>
+                    <span style="font-weight:700; flex:1;">${item.name}</span>
+                    <span style="color:var(--text-muted); font-size:0.8rem;">${item.qty}個</span>
+                </div>
+            `).join('')}
+        `;
+    },
+
     getIcon(n, cat) {
       if(cat && this.catIcons[cat]) return this.catIcons[cat];
       const ni = n.toLowerCase();
@@ -634,20 +762,39 @@
       if(this.stream) this.stream.getTracks().forEach(t => t.stop());
       this.showScreen('list-screen'); document.getElementById('bottom-nav').style.display='flex';
     },
+
+    async handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64Img = e.target.result.split(',')[1];
+            this.showToast('AI解析中...');
+            document.getElementById('ocr-status').innerText = "ファイルを解析中...";
+            try {
+                const result = await this.callGeminiAPI(base64Img);
+                this.parseGeminiResult(result);
+            } catch(err) {
+                console.error(err);
+                this.showToast('解析失敗: ' + err.message);
+            }
+        };
+        reader.readAsDataURL(file);
+    },
+
     async captureAndOCR() {
       if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
-      
       const v = document.getElementById('video-preview');
       const c = document.createElement('canvas');
-      
       const videoW = v.videoWidth;
       const videoH = v.videoHeight;
       const cropSize = Math.min(videoW, videoH) * 0.85;
       const startX = (videoW - cropSize) / 2;
       const startY = (videoH - cropSize) / 2;
 
-      c.width = 1024;
-      c.height = 1024;
+      c.width = 1024; c.height = 1024;
       const ctx = c.getContext('2d');
       ctx.drawImage(v, startX, startY, cropSize, cropSize, 0, 0, 1024, 1024);
       
@@ -665,7 +812,7 @@
     },
 
     async callGeminiAPI(base64Image) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
       const payload = {
         contents: [{
           parts: [
@@ -695,7 +842,6 @@
 
       const data = await resp.json();
       if (!data.candidates || data.candidates.length === 0) throw new Error("AIが回答を生成できませんでした。画像を確認してください。");
-      
       const candidate = data.candidates[0];
       if (candidate.finishReason === "SAFETY") throw new Error("安全フィルターによりブロックされました。");
       
@@ -726,7 +872,7 @@
       document.getElementById('entry-cat').value = data ? data.cat : "その他";
       document.getElementById('entry-qty').value = data ? data.qty : "1";
       document.getElementById('entry-overlay').style.display = 'flex';
-      if(this.stream) this.stream.getTracks().forEach(t => t.stop());
+      if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
     },
     openEdit(item) {
       this.editingId = item.id;
@@ -750,6 +896,7 @@
       if(this.editingId) store.put({ id: this.editingId, name, cat, qty, exp });
       else store.add({ name, cat, qty, exp, reg: new Date().toISOString() });
       this.closeEntry(); this.renderList(); this.showToast('保存しました');
+      if(document.getElementById('calendar-screen').classList.contains('active')) this.renderCalendar();
     },
 
     async checkReminders() {
@@ -758,9 +905,7 @@
       if(near.length > 0) this.showToast(`🔔 ${near.length}件の期限が近づいています`);
     },
 
-    shareApp() { if(navigator.share) navigator.share({ title: 'BestB4', text: '食品ロス削減！', url: location.href }); },
-    showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); },
-    processPayment() { this.showToast('決済画面へ移行します...'); }
+    showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
   };
   window.onload = () => app.init();
 </script>

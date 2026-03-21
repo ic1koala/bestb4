@@ -658,8 +658,8 @@
         const result = await this.callGeminiAPI(base64Img);
         this.parseGeminiResult(result);
       } catch(e) { 
-          console.error(e);
-          this.showToast('解析失敗: キーや通信を確認してください'); 
+          console.error("Gemini Error:", e);
+          this.showToast('解析失敗: ' + e.message); 
           document.getElementById('ocr-status').innerText = "解析失敗";
       }
     },
@@ -672,7 +672,14 @@
             { text: "Extract the food item name and its expiration date from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\"}. If the date is unclear, estimate or use today. If multiple items, pick the most prominent one." },
             { inline_data: { mime_type: "image/jpeg", data: base64Image } }
           ]
-        }]
+        }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ],
+        generationConfig: { response_mime_type: "application/json" }
       };
 
       const resp = await fetch(url, {
@@ -681,12 +688,24 @@
         body: JSON.stringify(payload)
       });
       
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.error?.message || `HTTP ${resp.status}`);
+      }
+
       const data = await resp.json();
-      if (data.error) throw new Error(data.error.message);
+      if (!data.candidates || data.candidates.length === 0) throw new Error("AIが回答を生成できませんでした。画像を確認してください。");
       
-      let text = data.candidates[0].content.parts[0].text;
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(text);
+      const candidate = data.candidates[0];
+      if (candidate.finishReason === "SAFETY") throw new Error("安全フィルターによりブロックされました。");
+      
+      let text = candidate.content.parts[0].text;
+      try {
+          return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+      } catch(e) {
+          console.log("Raw Response:", text);
+          throw new Error("AIの回答形式が正しくありません。");
+      }
     },
 
     parseGeminiResult(res) {

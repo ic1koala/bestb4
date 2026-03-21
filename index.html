@@ -114,6 +114,12 @@
     }
     .item-icon { width: 52px; height: 52px; border-radius: 16px; background: #f9fafb; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; position: relative; }
     .item-qty { position: absolute; top: -5px; right: -5px; background: var(--primary); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 8px; font-weight: 800; border: 2px solid #fff; }
+    .cal-detail-item { display: flex; align-items: center; gap: 12px; background: #fff; padding: 14px; border-radius: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s; }
+    .cal-detail-item:active { transform: scale(0.98); }
+    .cal-detail-item .icon { font-size: 1.5rem; }
+    .cal-btn { padding: 8px 14px; border-radius: 12px; font-size: 0.75rem; font-weight: 800; border: none; cursor: pointer; }
+    .cal-btn.consume { background: var(--secondary); color: var(--primary); }
+    .cal-btn.edit { background: #f1f5f9; color: #64748b; }
 
     /* Settings Details */
     .settings-section { background: #fff; border-radius: 24px; padding: 24px; margin-bottom: 24px; border: 1.5px solid #f1f5f9; }
@@ -158,11 +164,12 @@
     #toast { position: absolute; top: 44px; left: 50%; transform: translateX(-50%) translateY(-20px); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 40px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 2000; text-align: center; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #entry-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500;
+    .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000;
       background: rgba(255,255,255,0.9); backdrop-filter: blur(20px);
       display: none; flex-direction: column; padding: 60px 24px;
     }
+    #entry-overlay { z-index: 2100; }
 
     /* Swipe-to-Consume Styles */
     .swipe-container {
@@ -274,7 +281,17 @@
   <div id="calendar-screen" class="screen" style="padding:40px 24px 100px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
     <h2 style="font-weight:800; margin-bottom:20px;">カレンダー</h2>
     <div id="calendar-container"></div>
-    <div id="cal-details" style="margin-top:24px;"></div>
+  </div>
+
+  <!-- Calendar Detail Overlay -->
+  <div id="cal-detail-overlay" class="overlay" onclick="app.closeCalendarDetails()">
+    <div class="entry-card" onclick="event.stopPropagation()" style="max-height:80vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 id="cal-detail-title" style="font-weight:800; font-size:1.1rem;">アイテム一覧</h3>
+        <div onclick="app.closeCalendarDetails()" style="font-size:1.2rem; cursor:pointer;">✕</div>
+      </div>
+      <div id="cal-detail-list"></div>
+    </div>
   </div>
 
   <!-- 5. Link Screen -->
@@ -441,6 +458,10 @@
         s.classList.remove('active'); 
         setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, instant ? 0 : 400); 
       });
+      this.closeCalendarDetails();
+      this.closeEntry();
+      if(id !== 'action-menu') document.getElementById('action-menu').classList.remove('active');
+
       const t = document.getElementById(id); t.style.display = 'flex';
       if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
       else { setTimeout(() => t.classList.add('active'), 50); }
@@ -686,17 +707,34 @@
     },
 
     showCalendarDetails(date, items) {
-        const detail = document.getElementById('cal-details');
-        detail.innerHTML = `
-            <div style="font-weight:800; margin-bottom:12px; font-size:0.9rem;">${date} の期限切れアイテム:</div>
-            ${items.map(item => `
-                <div style="display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; margin-bottom:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                    <span>${this.getIcon(item.name, item.cat)}</span>
-                    <span style="font-weight:700; flex:1;">${item.name}</span>
-                    <span style="color:var(--text-muted); font-size:0.8rem;">${item.qty}個</span>
+        document.getElementById('cal-detail-title').innerText = `${date} のアイテム`;
+        const list = document.getElementById('cal-detail-list');
+        list.innerHTML = items.map(item => `
+            <div class="cal-detail-item">
+                <span class="icon">${this.getIcon(item.name, item.cat)}</span>
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.9rem;">${item.name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.qty}個</div>
                 </div>
-            `).join('')}
-        `;
+                <div style="display:flex; gap:8px;">
+                    <button class="cal-btn edit" onclick="app.closeCalendarDetails(); app.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">編集</button>
+                    <button class="cal-btn consume" onclick="app.consumeFromCalendar(${item.id})">消費</button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('cal-detail-overlay').style.display = 'flex';
+    },
+
+    closeCalendarDetails() {
+        document.getElementById('cal-detail-overlay').style.display = 'none';
+    },
+
+    async consumeFromCalendar(id) {
+        if(confirm('このアイテムを消費しますか？')) {
+            await this.consumeItem(id);
+            this.closeCalendarDetails();
+            this.renderCalendar();
+        }
     },
 
     getIcon(n, cat) {

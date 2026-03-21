@@ -391,16 +391,16 @@
   <!-- 8. Action Menu Overlay -->
   <div id="action-menu" onclick="app.toggleActionMenu()">
     <div class="action-options" onclick="event.stopPropagation()">
-      <div class="action-item" onclick="app.startCamera(); app.toggleActionMenu();">
+      <div class="action-item" onclick="app.startCamera();">
         <i style="background:#ecfdf5; color:#10b981;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></i>
         <span>カメラで読み取る</span>
       </div>
-      <div class="action-item" onclick="document.getElementById('file-upload').click(); app.toggleActionMenu();">
+      <div class="action-item" onclick="document.getElementById('file-upload').click();">
         <i style="background:#eff6ff; color:#3b82f6;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></i>
         <span>写真をアップロード</span>
-        <input type="file" id="file-upload" hidden accept="image/*" onchange="app.handleFileUpload(event)">
+        <input type="file" id="file-upload" hidden accept="image/*" onchange="app.handleFileUpload(event); app.toggleActionMenu();">
       </div>
-      <div class="action-item" onclick="app.openManualEntry(); app.toggleActionMenu();">
+      <div class="action-item" onclick="app.openManualEntry();">
         <i style="background:#fef2f2; color:#ef4444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></i>
         <span>手入力で登録</span>
       </div>
@@ -868,7 +868,7 @@
     },
 
     async callGeminiAPI(base64Image) {
-      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
       const payload = {
         contents: [{
           parts: [
@@ -922,12 +922,14 @@
 
     openManualEntry(data = null) {
       this.editingId = null;
+      document.getElementById('action-menu').classList.remove('active');
       document.getElementById('entry-title').innerText = "アイテム登録";
       document.getElementById('entry-name').value = data ? data.name : "";
       document.getElementById('entry-exp').value = data ? data.exp : new Date().toISOString().split('T')[0];
       document.getElementById('entry-cat').value = data ? data.cat : "その他";
       document.getElementById('entry-qty').value = data ? data.qty : "1";
       document.getElementById('entry-overlay').style.display = 'flex';
+      document.getElementById('bottom-nav').style.display = 'none';
       if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
     },
     openEdit(item) {

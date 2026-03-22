@@ -336,6 +336,16 @@
   <div id="settings-screen" class="screen" style="padding:40px 24px 120px; overflow-y:auto;">
     <h2 style="font-weight:800; margin-bottom:24px;">設定</h2>
     
+    <!-- 0. ユーザーアクティベーション (最上部) -->
+    <div class="settings-section" style="margin-bottom:30px; background:#fff; padding:20px; border-radius:24px; border:1px solid #f1f5f9;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">アカウント有効化 (必須)</p>
+      <div id="email-setup-container" style="display:flex; gap:8px;">
+        <input type="email" id="user-email" placeholder="メールアドレスを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
+        <button id="email-btn" onclick="app.toggleEmailEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
+      </div>
+      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">スプレッドシートとの同期に使用されます。</p>
+    </div>
+
     <!-- 1. 有料プラン設定 -->
     <div class="settings-section" style="margin-bottom:30px;">
       <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">有料プラン設定</p>
@@ -351,49 +361,20 @@
       <button class="demo-btn" onclick="app.showScreen('payment-screen')" style="border-style:solid; border-color:var(--primary); ">プランの詳細を見る (月額300円)</button>
     </div>
 
-    <!-- 2. 履歴（3件表示） -->
-    <div class="settings-section" style="margin-bottom:30px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">消費履歴</p>
-        <button id="history-toggle" onclick="app.renderHistory(true)" style="background:none; border:none; color:var(--primary); font-size:0.75rem; font-weight:800; display:none;">すべて表示</button>
-      </div>
-      <div id="history-list" style="margin-bottom:12px;"></div>
-      <button class="demo-btn" style="border-color:#f1f5f9; color:#94a3b8; font-size:0.7rem; padding:10px;" onclick="app.clearHistory()">履歴リセット</button>
-    </div>
-
     <!-- 3. カレンダー連携設定 -->
     <div class="settings-section" style="margin-bottom:30px;">
       <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">カレンダー連携</p>
-      
-      <div style="background:#f0f7ff; padding:20px; border-radius:24px; border:1px solid #dbeafe; margin-bottom:20px;">
-        <p style="font-size:0.75rem; font-weight:900; color:#1e40af; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          連携の3ステップ
+      <div style="background:#f0f7ff; padding:20px; border-radius:24px; border:1px solid #dbeafe; margin-bottom:12px;">
+        <p style="font-size:0.7rem; color:#1e40af; line-height:1.6; margin-bottom:12px;">
+          アイテム登録時にカレンダー(.ics)付きメールを自動送信します。スマホのカレンダーに期限をサッと追加できます。
         </p>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">① 下記のメールアドレスを登録</p>
-          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">② 登録時にカレンダー(ics)付きメールが届く</p>
-          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">③ メール内の予定をタップしてカレンダーへ保存</p>
-        </div>
+        <button onclick="app.showToast('カレンダー連携をリクエストしました')" style="width:100%; padding:10px; border-radius:12px; font-weight:800; font-size:0.75rem; background:#fff; border:1px solid #1e40af; color:#1e40af;">連携する</button>
       </div>
-
-      <div style="background:#f8fafc; padding:16px; border-radius:20px; border:1.5px solid #f1f5f9; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <p style="font-size:0.75rem; font-weight:800; color:#475569;">通知先メール</p>
-          <span id="mail-status-badge" style="background:#e2e8f0; color:#64748b; font-size:0.6rem; padding:3px 8px; border-radius:8px; font-weight:900;">OFF</span>
-        </div>
-        <input type="email" id="user-email" placeholder="メール未設定" onchange="app.saveEmailSettings()" style="width:100%; padding:14px; border-radius:14px; border:1px solid #e2e8f0; outline:none; font-size:0.95rem; font-weight:600; background:#fff;">
-      </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4;">アイテム登録時に、このアドレスへカレンダー(ics)が届きます。</p>
     </div>
 
-    <!-- 4-5. テスト機能 -->
+    <!-- 4. テスト機能 -->
     <div style="background:#fef2f2; border-radius:24px; padding:20px; border:1.5px dashed #fecaca; margin-bottom:40px;">
-      <p style="font-size:0.8rem; font-weight:800; color:#ef4444; margin-bottom:16px; display:flex; align-items:center; gap:6px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        テスト用機能
-      </p>
-
+      <p style="font-size:0.8rem; font-weight:800; color:#ef4444; margin-bottom:16px;">テスト用機能</p>
       <div style="margin-bottom:20px;">
         <p style="font-size:0.7rem; font-weight:800; color:#b91c1c; margin-bottom:8px;">AI設定 (Gemini API)</p>
         <div style="display:flex; gap:8px;">
@@ -401,7 +382,6 @@
           <button onclick="app.saveApiKey()" style="padding:10px 16px; border-radius:12px; border:none; background:#ef4444; color:#fff; font-weight:800; font-size:0.75rem;">保存</button>
         </div>
       </div>
-
       <button class="demo-btn" style="background:#fff; border-color:#fecaca; color:#ef4444; border-style:solid;" onclick="app.injectDemoData()">デモデータを20件投入</button>
     </div>
 
@@ -544,39 +524,71 @@
     isPaid: localStorage.getItem('bestb4_paid_status') === 'true',
     gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
-    mockRecipes: [],
-    recipeCacheKey: 'bestb4_recipe_cache',
-    recipeTimestampKey: 'bestb4_recipe_ts',
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
-      setTimeout(() => {
-        const splash = document.getElementById('splash-screen');
-        splash.style.transition = 'opacity 1s ease, background 0.8s ease';
-        splash.style.background = '#fff';
+      this.updateEmailInputState();
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
         setTimeout(() => {
-          this.showScreen('list-screen', true);
-          document.getElementById('bottom-nav').style.display = 'flex';
-          splash.style.opacity = '0';
-          setTimeout(() => splash.style.display = 'none', 1000);
-          this.checkReminders();
-        }, 1000);
-      }, 4200);
-      
-      // await this.initDB(); // IndexedDB removed
+          splash.style.transition = 'opacity 1s ease, background 0.8s ease';
+          splash.style.background = '#fff';
+          setTimeout(() => {
+            this.showScreen('list-screen', true);
+            document.getElementById('bottom-nav').style.display = 'flex';
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 1000);
+            this.checkReminders();
+          }, 1000);
+        }, 4200);
+      }
       this.updateDateLabel();
       this.renderList();
-      if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
-      document.getElementById('user-email').value = this.userEmail;
-      this.updateLinkStatus();
-      this.checkPremiumCode(); // Initialize premium status display
+      if(this.apiKey) {
+        const keyInput = document.getElementById('gemini-api-key');
+        if (keyInput) keyInput.value = '********';
+      }
+      this.checkPremiumCode();
     },
 
-    saveEmailSettings() {
-      this.userEmail = document.getElementById('user-email').value;
-      localStorage.setItem('bestb4_user_email', this.userEmail);
-      this.updateLinkStatus();
-      this.showToast('通知先メールアドレスを保存しました');
+    updateEmailInputState() {
+      const input = document.getElementById('user-email');
+      const btn = document.getElementById('email-btn');
+      if (!input || !btn) return;
+
+      if (this.userEmail) {
+        input.value = this.userEmail;
+        input.disabled = true;
+        input.style.background = "#f8fafc";
+        btn.innerText = "変更";
+        btn.style.background = "#94a3b8";
+        btn.style.color = "#fff";
+      } else {
+        input.disabled = false;
+        input.style.background = "#fff";
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+        btn.style.color = "#fff";
+      }
+    },
+
+    toggleEmailEdit() {
+      const input = document.getElementById('user-email');
+      const btn = document.getElementById('email-btn');
+      if (input.disabled) {
+        input.disabled = false;
+        input.style.background = "#fff";
+        input.focus();
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+      } else {
+        const val = input.value.trim();
+        if (!val) return this.showToast('メールアドレスを入力してください');
+        this.userEmail = val;
+        localStorage.setItem('bestb4_user_email', val);
+        this.updateEmailInputState();
+        this.showToast('アカウント設定を保存しました');
+      }
     },
 
     updateLinkStatus() {
@@ -1525,31 +1537,18 @@
     },
     closeEntry() { document.getElementById('entry-overlay').style.display = 'none'; document.getElementById('bottom-nav').style.display='flex'; },
     
-    async saveEntry() {
-      // Handled by updated GAS function above
-    },
-
     async injectDemoData() {
-      if (!this.userEmail) return this.showToast('設定画面でメールアドレスを入力してください');
+      if (!this.userEmail) return this.showToast('アカウント有効化（メール）を完了してください');
 
       const demoData = [
         {name:"牛乳", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(2)},
-        {name:"卵(10個入)", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(5)},
-        {name:"納豆(3P)", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(3)},
-        {name:"鶏もも肉", cat:"肉", qty:1, exp: this.getDateAdd(2)},
-        {name:"豚こま肉", cat:"肉", qty:1, exp: this.getDateAdd(3)},
-        {name:"鮭の切り身", cat:"魚", qty:1, exp: this.getDateAdd(1)},
-        {name:"キャベツ", cat:"野菜", qty:1, exp: this.getDateAdd(7)},
-        {name:"トマト", cat:"野菜", qty:1, exp: this.getDateAdd(3)},
-        {name:"ヨーグルト", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(10)},
-        {name:"キムチ", cat:"その他", qty:1, exp: this.getDateAdd(14)},
-        {name:"食パン", cat:"その他", qty:1, exp: this.getDateAdd(3)},
-        {name:"カップ焼きそば", cat:"インスタント", qty:1, exp: this.getDateAdd(180)},
-        {name:"冷凍うどん", cat:"冷凍食品", qty:5, exp: this.getDateAdd(90)},
-        {name:"ツナ缶", cat:"缶詰", qty:3, exp: this.getDateAdd(500)}
+        {name:"卵(10個入)", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(4)},
+        {name:"鶏もも肉", cat:"肉", qty:2, exp: this.getDateAdd(2)},
+        {name:"トマト", cat:"野菜", qty:3, exp: this.getDateAdd(3)},
+        {name:"ヨーグルト", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(10)}
       ];
       
-      this.showToast('デモデータを投入中...');
+      this.showToast('デモデータを投入中... (GAS同期)');
       try {
         for (const item of demoData) {
           await fetch(this.gasStorageUrl, {
@@ -1557,11 +1556,25 @@
             body: JSON.stringify({ action: 'add', email: this.userEmail, ...item })
           });
         }
-        this.showToast('デモデータの投入が完了しました！');
+        this.showToast('投入完了！最新のリストを読み込みます');
         this.renderList();
+        this.renderCalendar();
       } catch (e) {
-        this.showToast('一部のデータの投入に失敗しました');
+        console.error('Demo Data Error:', e);
+        this.showToast('データの投入に失敗しました。');
       }
+    },
+
+    updateDateLabel() {
+      const now = new Date(); 
+      const el = document.getElementById('today-date');
+      if (el) el.innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+    },
+
+    getDateAdd(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
     },
 
     async checkReminders() {
@@ -1570,8 +1583,16 @@
       if(near.length > 0) this.showToast(`🔔 ${near.length}件の期限が近づいています`);
     },
 
-    showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+    showToast(m) { 
+      const t = document.getElementById('toast'); 
+      if (t) {
+        t.innerText = m; 
+        t.classList.add('show'); 
+        setTimeout(() => t.classList.remove('show'), 3000); 
+      }
+    }
   };
+
   window.onload = () => app.init();
 </script>
 

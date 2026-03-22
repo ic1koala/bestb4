@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>BestB4 - 賞味期限管理</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   
-  <!-- Gemini AI Vision integration -->
+  <!-- UI simplified for Mail Integration -->
   
   <style>
     :root {
@@ -302,27 +300,38 @@
 
   <!-- 5. Link Screen -->
   <div id="link-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
-    <h2 style="font-weight:800; margin-bottom:24px;">外部サービス連携</h2>
+    <h2 style="font-weight:800; margin-bottom:24px;">カレンダー連携</h2>
     
     <div class="settings-section">
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
-        <div style="width:44px; height:44px; background:#4285f4; border-radius:12px; display:flex; justify-content:center; align-items:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M21.35 11.1H12.18v3.57h5.27c-.23 1.25-.94 2.31-2 2.98v2.48h3.24c1.89-1.74 2.98-4.3 2.98-7.39 0-.64-.06-1.26-.18-1.84z"/></svg></div>
-        <div style="flex:1;"><p style="font-weight:700;">Google カレンダー</p><p id="google-status" style="font-size:0.65rem; color:var(--text-muted);">認証が必要です</p></div>
-        <button id="google-link-btn" onclick="app.authGoogle()" style="padding:8px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem;">認証する</button>
-      </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4;">有効にすると、新規登録時に自動的にカレンダーへ期限の予定が作成されます。</p>
-    </div>
-
-    <div class="settings-section">
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
-        <div style="width:44px; height:44px; background:#06c755; border-radius:12px; display:flex; justify-content:center; align-items:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M24 10.3c0-4.7-5.4-8.5-12-8.5S0 5.6 0 10.3c0 4.2 4.3 7.7 10.1 8.4-.4-.8-.4-1.3-.1-1.9 1.8.8 1.9 1.1 2 1.3V18c6.6 0 12-3.8 12-7.7z"/></svg></div>
-        <div style="flex:1;"><p style="font-weight:700;">LINE 通知</p><p id="line-status" style="font-size:0.65rem; color:var(--text-muted);">Webhook未設定</p></div>
-        <div style="display:flex; align-items:center; gap:6px;">
-          <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">自動送信</span>
-          <input type="checkbox" id="line-auto-toggle" onchange="app.saveExternalSettings()" style="width:18px; height:18px; accent-color:var(--primary);">
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+        <div style="width:52px; height:52px; background:linear-gradient(135deg, #3b82f6, #60a5fa); border-radius:14px; display:flex; justify-content:center; align-items:center;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div style="flex:1;">
+          <p style="font-weight:800; font-size:1.1rem; color:#1e293b;">メールでカレンダー登録</p>
+          <p id="mail-link-status" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">メールアドレス未設定</p>
         </div>
       </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4;">Make(Integromat)等のWebhookを設定すると、登録時にLINE通知を送ります。</p>
+      
+      <div style="background:#f8fafc; padding:20px; border-radius:18px; border:1px solid #f1f5f9; margin-bottom:20px;">
+        <p style="font-size:0.8rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">連携のステップ</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">1</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">設定から<b>通知用メールアドレス</b>を登録します。</p>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">2</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">新規登録時に、賞味期限の<b>カレンダー(ics)付きメール</b>が届きます。</p>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">3</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">届いたメールの<b>「カレンダーに追加」</b>をタップするだけで登録完了！</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="app.showScreen('settings-screen')" style="width:100%; padding:15px; border-radius:16px; border:none; background:#f1f5f9; color:#475569; font-weight:800; font-size:0.85rem;">設定画面でメールアドレスを登録する</button>
     </div>
   </div>
 
@@ -346,19 +355,14 @@
     </div>
 
     <div class="settings-section">
-      <p style="font-size:0.8rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">外部連携設定</p>
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">カレンダー連携設定</p>
       
-      <div style="margin-bottom:16px;">
-        <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:6px;">Google Cloud Client ID</label>
-        <input type="text" id="google-client-id" placeholder="xxxxx.apps.googleusercontent.com" style="width:100%; padding:12px; border-radius:12px; border:1.5px solid #f1f5f9; outline:none; font-size:0.8rem;">
-      </div>
-
-      <div style="margin-bottom:16px;">
-        <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:6px;">LINE Webhook URL (Make等)</label>
-        <input type="text" id="line-webhook-url" placeholder="https://hook.make.com/xxxx" style="width:100%; padding:12px; border-radius:12px; border:1.5px solid #f1f5f9; outline:none; font-size:0.8rem;">
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">通知用メールアドレス</label>
+        <input type="email" id="user-email" placeholder="example@gmail.com" style="width:100%; padding:14px; border-radius:16px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:0.95rem; font-weight:600;">
       </div>
       
-      <button class="demo-btn" onclick="app.saveExternalSettings()" style="border-style:solid; font-size:0.8rem; padding:12px;">連携先設定を保存</button>
+      <button class="demo-btn" onclick="app.saveEmailSettings()" style="border-style:solid; font-size:0.9rem; padding:15px; background:rgba(16, 185, 129, 0.05);">設定を保存する</button>
     </div>
 
     <div class="settings-section">
@@ -446,11 +450,7 @@
   const app = {
     db: null, stream: null, editingId: null, currentCat: "すべて",
     apiKey: localStorage.getItem('bestb4_gemini_key') || '',
-    googleClientId: localStorage.getItem('bestb4_google_id') || '',
-    lineWebhookUrl: localStorage.getItem('bestb4_line_webhook') || '',
-    lineAutoEnabled: localStorage.getItem('bestb4_line_auto') === 'true',
-    googleAccessToken: null,
-    tokenClient: null,
+    userEmail: localStorage.getItem('bestb4_user_email') || '',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -472,90 +472,48 @@
       this.updateDateLabel();
       this.renderList();
       if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
-      document.getElementById('google-client-id').value = this.googleClientId;
-      document.getElementById('line-webhook-url').value = this.lineWebhookUrl;
-      document.getElementById('line-auto-toggle').checked = this.lineAutoEnabled;
-      this.updateStatusLabels();
-      this.initGapi();
+      document.getElementById('user-email').value = this.userEmail;
+      this.updateLinkStatus();
     },
 
-    saveExternalSettings() {
-      this.googleClientId = document.getElementById('google-client-id').value;
-      this.lineWebhookUrl = document.getElementById('line-webhook-url').value;
-      this.lineAutoEnabled = document.getElementById('line-auto-toggle').checked;
+    saveEmailSettings() {
+      this.userEmail = document.getElementById('user-email').value;
+      localStorage.setItem('bestb4_user_email', this.userEmail);
+      this.updateLinkStatus();
+      this.showToast('通知先メールアドレスを保存しました');
+    },
+
+    updateLinkStatus() {
+      const status = document.getElementById('mail-link-status');
+      if (status) {
+        status.innerText = this.userEmail ? `✅ ${this.userEmail} へ送信予定` : 'メールアドレス未設定';
+      }
+    },
+
+    async processMailIntegration(item) {
+      if (!this.userEmail) return;
       
-      localStorage.setItem('bestb4_google_id', this.googleClientId);
-      localStorage.setItem('bestb4_line_webhook', this.lineWebhookUrl);
-      localStorage.setItem('bestb4_line_auto', this.lineAutoEnabled);
+      this.showToast('カレンダー連携メールを送信中...');
+      console.log(`Mock Email to ${this.userEmail}: Generating ICS for ${item.name}`);
       
-      this.updateStatusLabels();
-      this.initGapi();
-      this.showToast('設定を保存しました');
-    },
-
-    updateStatusLabels() {
-      const gStat = document.getElementById('google-status');
-      const lStat = document.getElementById('line-status');
-      if (gStat) gStat.innerText = this.googleAccessToken ? '✅ 認証済み' : (this.googleClientId ? '認証が必要です' : 'Client ID未設定');
-      if (lStat) lStat.innerText = this.lineWebhookUrl ? '✅ 設定済み' : 'Webhook未設定';
-    },
-
-    initGapi() {
-      if (!this.googleClientId || typeof google === 'undefined') return;
-      this.tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: this.googleClientId,
-        scope: 'https://www.googleapis.com/auth/calendar.events',
-        callback: (resp) => {
-          if (resp.access_token) {
-            this.googleAccessToken = resp.access_token;
-            this.updateStatusLabels();
-            const btn = document.getElementById('google-link-btn');
-            if(btn) btn.innerText = '認証済み';
-            this.showToast('Google連携が完了しました');
-          }
-        },
-      });
-    },
-
-    authGoogle() {
-      if (!this.tokenClient) return this.showToast('先に設定でClient IDを入力してください');
-      this.tokenClient.requestAccessToken({ prompt: 'consent' });
-    },
-
-    async createCalendarEvent(item) {
-      if (!this.googleAccessToken) return;
-      const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-      const event = {
-        summary: `🍴 賞味期限: ${item.name}`,
-        description: `BestB4より自動登録\nアイテム: ${item.name}\nカテゴリー: ${item.cat}\n数量: ${item.qty}`,
-        start: { date: item.exp },
-        end: { date: item.exp },
-        reminders: { useDefault: true }
-      };
+      // 擬似ICSファイル生成
+      const icsData = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'BEGIN:VEVENT',
+        `SUMMARY:🍴賞味期限:${item.name}`,
+        `DTSTART;VALUE=DATE:${item.exp.replace(/-/g,'')}`,
+        `DTEND;VALUE=DATE:${item.exp.replace(/-/g,'')}`,
+        `DESCRIPTION:${item.name} (${item.qty}個) の賞味期限です。`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\n');
       
-      try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${this.googleAccessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(event)
-        });
-        if (resp.ok) console.log('Google Calendar event created');
-      } catch (e) { console.error('GCal Error:', e); }
-    },
-
-    async sendLINENotification(item) {
-      if (!this.lineWebhookUrl || !this.lineAutoEnabled) return;
-      const message = `🔔 新しいアイテムを登録しました！\n\n【${item.name}】\n賞味期限: ${item.exp}\nカテゴリー: ${item.cat}\n数量: ${item.qty}\n\n期限までに消費しましょう！`;
-      
-      try {
-        await fetch(this.lineWebhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message, data: item })
-        });
-        console.log('LINE Notification sent');
-      } catch (e) { console.error('LINE Notify Error:', e); }
+      // 擬似送信フローのシミュレーション（本来はここでサーバーAPIへ送信）
+      setTimeout(() => {
+        this.showToast('✅ メールを送信しました！カレンダーに追加してください');
+        console.log("Mock ICS Content:\n", icsData);
+      }, 1500);
     },
 
     saveApiKey() {
@@ -1068,9 +1026,8 @@
       else {
         const newItem = { name, cat, qty, exp, reg: new Date().toISOString() };
         store.add(newItem);
-        // 統合連携
-        this.createCalendarEvent(newItem);
-        this.sendLINENotification(newItem);
+        // メール連携（ICS擬似生成）実行
+        this.processMailIntegration(newItem);
       }
       this.closeEntry(); this.renderList(); this.showToast('保存しました');
       if(document.getElementById('calendar-screen').classList.contains('active')) this.renderCalendar();

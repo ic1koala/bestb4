@@ -8,6 +8,7 @@
   <link rel="apple-touch-icon" href="icon_bestb4.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <!-- UI simplified for Mail Integration -->
   
@@ -336,17 +337,17 @@
     <h2 style="font-weight:800; margin-bottom:24px;">設定</h2>
     
     <!-- 1. 有料プラン設定 -->
-    <div class="settings-section" style="border:none; padding:0; margin-bottom:30px;">
-      <div style="background:linear-gradient(135deg, #10b981, #059669); padding:24px; border-radius:30px; color:#fff; box-shadow:0 15px 35px rgba(16, 185, 129, 0.2);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <p style="font-size:0.75rem; font-weight:700; opacity:0.9; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Current Plan</p>
-            <p style="font-weight:800; font-size:1.2rem;">BestB4 Premium</p>
-            <div style="font-size:1.8rem; font-weight:900; margin:4px 0;">¥480 <span style="font-size:0.9rem; font-weight:400; opacity:0.8;">/ month</span></div>
-          </div>
-          <button onclick="app.showToast('プラン変更はApp Storeから')" style="padding:10px 18px; border-radius:15px; border:none; background:rgba(255,255,255,0.2); color:#fff; font-weight:800; font-size:0.85rem; backdrop-filter:blur(5px);">変更</button>
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">有料プラン設定</p>
+      <div style="background:linear-gradient(135deg, #10b981, #3b82f6); padding:20px; border-radius:24px; color:#fff; position:relative; overflow:hidden; margin-bottom:16px;">
+        <p style="font-weight:900; font-size:1.1rem; margin-bottom:4px;">Premium Plan</p>
+        <p style="font-size:0.7rem; opacity:0.9;">賞味期限が7日より先のアイテムも<br>AIで自動登録できるようになります。</p>
+        <div style="margin-top:20px;">
+          <input type="password" id="premium-code" placeholder="パスワードを入力" oninput="app.checkPremiumCode()" style="width:100%; padding:10px; border-radius:12px; border:none; background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; outline:none;">
+          <p id="premium-status" style="font-size:0.65rem; margin-top:8px; font-weight:800;"></p>
         </div>
       </div>
+      <button class="demo-btn" onclick="app.showScreen('payment-screen')" style="border-style:solid; border-color:var(--primary); ">プランの詳細を見る (月額300円)</button>
     </div>
 
     <!-- 2. 履歴（3件表示） -->
@@ -501,14 +502,24 @@
     </div>
   </div>
 
-  <div id="bottom-nav">
-    <div class="nav-btn active" onclick="app.showScreen('list-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>リスト</span></div>
-    <div class="nav-btn" onclick="app.showScreen('calendar-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>カレンダー</span></div>
-    <div class="nav-add-btn" onclick="app.toggleActionMenu()">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </div>
-    <div class="nav-btn" onclick="app.showScreen('recipe-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 19V5C18 3.89543 17.1046 3 16 3H8C6.89543 3 6 3.89543 6 5V19L12 16L18 19Z"/><path d="M12 11V6" stroke-linecap="round"/></svg><span>レシピ</span></div>
-    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>設定</span></div>
+  <!-- 10. Payment Screen (Placeholder) -->
+  <div id="payment-screen" class="screen" style="padding:40px 24px; display:none;">
+    <h2 style="font-weight:800; margin-bottom:20px;">有料プラン</h2>
+    <p style="font-size:0.9rem; color:var(--text-muted);">
+      BestB4 Premiumに加入すると、賞味期限が7日より先のアイテムもAIで自動登録できるようになります。
+      月額300円で、より便利に冷蔵庫を管理しましょう！
+    </p>
+    <button onclick="app.showToast('App Store/Google Playで購読')" style="width:100%; padding:16px; border-radius:18px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:1rem; margin-top:30px;">
+      購読する (月額300円)
+    </button>
+    <button onclick="app.showScreen('settings-screen')" style="width:100%; padding:16px; border-radius:18px; border:2px solid #f1f5f9; background:#fff; font-weight:800; color:var(--text-muted); font-size:1rem; margin-top:12px;">
+      設定に戻る
+    </button>
+  </div>
+
+  <!-- 11. Off-screen Share Renderer -->
+  <div id="share-render-container" style="position:fixed; left:-9999px; top:0; width:450px; background:#fff; padding:40px; border-radius:1px; color:#1e293b;">
+    <!-- Generated on the fly -->
   </div>
 
 </div>
@@ -518,6 +529,8 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     apiKey: localStorage.getItem('bestb4_gemini_key') || '',
     userEmail: localStorage.getItem('bestb4_user_email') || '',
+    isPaid: localStorage.getItem('bestb4_paid_status') === 'true',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     mockRecipes: [],
     recipeCacheKey: 'bestb4_recipe_cache',
@@ -538,12 +551,13 @@
         }, 1000);
       }, 4200);
       
-      await this.initDB();
+      // await this.initDB(); // IndexedDB removed
       this.updateDateLabel();
       this.renderList();
       if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
       document.getElementById('user-email').value = this.userEmail;
       this.updateLinkStatus();
+      this.checkPremiumCode(); // Initialize premium status display
     },
 
     saveEmailSettings() {
@@ -663,24 +677,49 @@
     },
 
     async consumeItem(id) {
-      const tx = this.db.transaction(['items'], 'readwrite');
-      const store = tx.objectStore('items');
-      const item = await new Promise(r => store.get(id).onsuccess = (e) => r(e.target.result));
-      
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      const allItems = await this.getAllItems();
+      const item = allItems.find(i => i.id === id);
+
       if (item) {
+        let newQty = item.qty;
+        let archived = item.archivedAt;
+        let toastMsg = '';
+
         if (item.qty > 1) {
-          item.qty -= 1;
-          store.put(item);
-          this.showToast('1つ消費しました');
+          newQty -= 1;
+          toastMsg = `1つ消費しました（残り${newQty}個）`;
         } else {
-          item.archivedAt = new Date().toISOString();
-          store.put(item);
-          this.showToast('使い切りました！');
+          archived = new Date().toISOString();
+          toastMsg = '使い切りました！';
         }
-        tx.oncomplete = () => {
-          this.renderList();
-          this.renderCalendar();
-        };
+
+        try {
+          const resp = await fetch(this.gasStorageUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update',
+              email: this.userEmail,
+              id: item.id,
+              qty: newQty,
+              archivedAt: archived
+            })
+          });
+
+          if (resp.ok) {
+            this.showToast(toastMsg);
+            this.renderList();
+            this.renderCalendar();
+            this.renderHistory();
+          } else {
+            this.showToast('消費処理に失敗しました');
+          }
+        } catch (e) {
+          console.error('Consume Item Error:', e);
+          this.showToast('消費処理中にエラーが発生しました');
+        }
       }
     },
 
@@ -705,13 +744,30 @@
       }
     },
 
-    initDB() {
-      return new Promise(res => {
-        const req = indexedDB.open("BestB4_V3", 1);
-        req.onupgradeneeded = e => e.target.result.createObjectStore("items", { keyPath: "id", autoIncrement: true });
-        req.onsuccess = e => { this.db = e.target.result; res(); };
-      });
+    checkPremiumCode() {
+      const input = document.getElementById('premium-code');
+      const status = document.getElementById('premium-status');
+      if (!input || !status) return; // Exit if elements don't exist
+
+      if (input.value === 'continue') {
+        this.isPaid = true;
+        localStorage.setItem('bestb4_paid_status', 'true');
+        status.innerText = "✅ 有料プランが有効です";
+        status.style.color = "#fff";
+      } else {
+        this.isPaid = false;
+        localStorage.setItem('bestb4_paid_status', 'false');
+        status.innerText = "";
+      }
     },
+
+    // initDB() { // IndexedDB removed
+    //   return new Promise(res => {
+    //     const req = indexedDB.open("BestB4_V3", 1);
+    //     req.onupgradeneeded = e => e.target.result.createObjectStore("items", { keyPath: "id", autoIncrement: true });
+    //     req.onsuccess = e => { this.db = e.target.result; res(); };
+    //   });
+    // },
 
     updateDateLabel() {
       const now = new Date(); document.getElementById('today-date').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
@@ -738,6 +794,7 @@
       if (id === 'settings-screen') {
           this.renderHistory();
           if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
+          this.checkPremiumCode(); // Update premium status display on settings screen
       }
       if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
     },
@@ -846,27 +903,7 @@
       });
     },
 
-    async consumeItem(id) {
-      const trans = this.db.transaction("items", "readwrite");
-      const store = trans.objectStore("items");
-      const item = await new Promise(res => store.get(id).onsuccess = e => res(e.target.result));
-      if (item) {
-        if (item.qty > 1) {
-          item.qty -= 1;
-          store.put(item);
-          this.showToast(`${item.name}：1つ消費（残り${item.qty}個）`);
-        } else {
-          item.archivedAt = new Date().toISOString();
-          store.put(item);
-          this.showToast(`${item.name}：使い切りました！`);
-        }
-      }
-      trans.oncomplete = () => {
-        this.renderList();
-        this.renderHistory();
-        this.renderCalendar();
-      };
-    },
+    // consumeItem(id) is already updated above.
 
     async renderHistory(full = false) {
       const container = document.getElementById('history-list');
@@ -901,32 +938,57 @@
     },
 
     async restoreItem(id) {
-      const trans = this.db.transaction("items", "readwrite");
-      const store = trans.objectStore("items");
-      const item = await new Promise(res => store.get(id).onsuccess = e => res(e.target.result));
-      if (item) {
-        delete item.archivedAt;
-        store.put(item);
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      try {
+        const resp = await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            email: this.userEmail,
+            id: id,
+            archivedAt: '' // Set to empty to unarchive
+          })
+        });
+
+        if (resp.ok) {
+          this.showToast('リストに戻しました');
+          this.renderList();
+          this.renderHistory();
+        } else {
+          this.showToast('復元に失敗しました');
+        }
+      } catch (e) {
+        console.error('Restore Item Error:', e);
+        this.showToast('復元中にエラーが発生しました');
       }
-      trans.oncomplete = () => {
-        this.showToast('リストに戻しました');
-        this.renderList();
-        this.renderHistory();
-      };
     },
 
     async clearHistory() {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
       if (!confirm('履歴をすべて削除しますか？')) return;
-      const allItems = await this.getAllItems();
-      const trans = this.db.transaction("items", "readwrite");
-      const store = trans.objectStore("items");
-      allItems.forEach(i => {
-        if (i.archivedAt) store.delete(i.id);
-      });
-      trans.oncomplete = () => {
-        this.showToast('履歴を削除しました');
-        this.renderHistory();
-      };
+
+      try {
+        const resp = await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'clearHistory',
+            email: this.userEmail
+          })
+        });
+
+        if (resp.ok) {
+          this.showToast('履歴を削除しました');
+          this.renderHistory();
+        } else {
+          this.showToast('履歴の削除に失敗しました');
+        }
+      } catch (e) {
+        console.error('Clear History Error:', e);
+        this.showToast('履歴削除中にエラーが発生しました');
+      }
     },
 
     async renderCalendar() {
@@ -1030,14 +1092,109 @@
       return '🍱';
     },
 
-    async getAllItems() {
-      return new Promise(res => {
-        const trans = this.db.transaction("items", "readonly");
-        trans.objectStore("items").getAll().onsuccess = e => res(e.target.result);
+    async shareApp() {
+      const items = await this.getAllItems();
+      const activeItems = items.filter(i => !i.archivedAt);
+      if (activeItems.length === 0) return this.showToast('共有するアイテムがありません');
+
+      this.showToast('共有用リストを作成中...');
+      const renderArea = document.getElementById('share-render-container');
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+      // Build Categorized UI
+      let html = `<div style="text-align:center; padding-bottom:30px; border-bottom:2px solid #f1f5f9; margin-bottom:30px;">
+        <h1 style="font-size:1.8rem; font-weight:900; color:var(--primary); margin-bottom:8px;">BestB4 在庫リスト</h1>
+        <p style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">生成日時: ${dateStr}</p>
+      </div>`;
+
+      this.categories.forEach(cat => {
+        const catItems = activeItems.filter(i => i.cat === cat);
+        if (catItems.length > 0) {
+          html += `<div style="margin-bottom:30px;">
+            <div style="font-size:1.1rem; font-weight:900; padding:8px 16px; background:#f8fafc; border-radius:12px; display:inline-block; margin-bottom:16px;">
+              ${this.catIcons[cat] || '📦'} ${cat}
+            </div>
+            <div style="border-left:3px solid #f1f5f9; margin-left:14px; padding-left:20px;">
+              ${catItems.map(i => `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                  <div>
+                    <div style="font-weight:800; font-size:1rem;">${i.name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">数量: ${i.qty}個</div>
+                  </div>
+                  <div style="font-size:0.85rem; font-weight:800; color:#1e293b; background:#f1f5f9; padding:6px 12px; border-radius:10px;">
+                    期限: ${i.exp}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+        }
       });
+
+      renderArea.innerHTML = html;
+
+      // Capture with html2canvas
+      try {
+        const canvas = await html2canvas(renderArea, {
+          backgroundColor: '#ffffff',
+          scale: 2, // High resolution
+          logging: false
+        });
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], `bestb4_stock_list_${now.getTime()}.png`, { type: 'image/png' });
+
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'BestB4 在庫リスト',
+                text: `${dateStr} 時点のわが家の在庫リストです。`
+              });
+            } catch (e) {
+              this.fallbackDownload(blob);
+            }
+          } else {
+            this.fallbackDownload(blob);
+          }
+        });
+      } catch (e) {
+        console.error('Share Generation Error:', e);
+        this.showToast('画像生成に失敗しました');
+      }
+    },
+
+    fallbackDownload(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bestb4_stock_list.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast('画像を保存しました');
+    },
+
+    async getAllItems() {
+      if (!this.userEmail) return [];
+      try {
+        const resp = await fetch(`${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail)}`);
+        if (!resp.ok) {
+          console.error('Failed to fetch items from GAS:', resp.status, resp.statusText);
+          return [];
+        }
+        const data = await resp.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        console.error('GAS Storage Error:', e);
+        return [];
+      }
     },
 
     async injectDemoData() {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
       const demoData = [
         {name:"牛乳", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(2)},
         {name:"卵(10個入)", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(5)},
@@ -1061,10 +1218,29 @@
         {name:"木綿豆腐", cat:"その他", qty:1, exp: this.getDateAdd(3)}
       ];
       
-      const trans = this.db.transaction("items", "readwrite");
-      const store = trans.objectStore("items");
-      demoData.forEach(d => { d.reg = new Date().toISOString(); store.add(d); });
-      trans.oncomplete = () => { this.showToast('20件のデモデータを投入しました'); this.renderList(); };
+      this.showToast('デモデータを投入中...');
+      try {
+        const resp = await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'addMultiple',
+            email: this.userEmail,
+            items: demoData.map(d => ({ ...d, reg: new Date().toISOString() }))
+          })
+        });
+
+        if (resp.ok) {
+          this.showToast('20件のデモデータを投入しました');
+          this.renderList();
+          this.renderCalendar();
+        } else {
+          this.showToast('デモデータの投入に失敗しました');
+        }
+      } catch (e) {
+        console.error('Inject Demo Data Error:', e);
+        this.showToast('デモデータ投入中にエラーが発生しました');
+      }
     },
 
     getDateAdd(days) {
@@ -1087,6 +1263,7 @@
         const files = event.target.files;
         if (!files || files.length === 0) return;
         if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
+        if (!this.userEmail) return this.showToast('設定画面からメールアドレスを登録してください');
         
         const loader = document.getElementById('ocr-loading');
         const loaderText = loader.querySelector('p');
@@ -1136,21 +1313,45 @@
     },
 
     async saveEntryDirectly(res) {
-      const item = {
-        name: res.name || "商品",
-        exp: res.exp || new Date().toISOString().split('T')[0],
+      if (!this.userEmail) return;
+      
+      const name = res.name || "商品";
+      const exp = res.exp || new Date().toISOString().split('T')[0];
+      
+      // 有料制限チェック
+      if (!this.isPaid) {
+        const diff = Math.ceil((new Date(exp) - new Date()) / 86400000);
+        if (diff > 7) {
+          this.showToast(`AI解析：${name}は7日以上先のため保存をスキップしました（要有料プラン）`);
+          return;
+        }
+      }
+
+      const payload = {
+        action: 'add',
+        email: this.userEmail,
+        name,
+        exp,
         qty: 1,
         cat: res.cat || 'その他',
-        createdAt: new Date().toISOString()
+        reg: new Date().toISOString()
       };
       
-      const tx = this.db.transaction(['items'], 'readwrite');
-      tx.objectStore('items').add(item);
-      return new Promise(r => tx.oncomplete = r);
+      const resp = await fetch(this.gasStorageUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        console.error('Failed to save item directly:', await resp.text());
+        throw new Error('Failed to save item directly');
+      }
     },
 
     async captureAndOCR() {
       if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
+      if (!this.userEmail) return this.showToast('設定画面からメールアドレスを登録してください');
+
       const v = document.getElementById('video-preview');
       const c = document.createElement('canvas');
       const videoW = v.videoWidth;

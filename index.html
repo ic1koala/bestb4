@@ -298,40 +298,24 @@
     </div>
   </div>
 
-  <!-- 5. Link Screen -->
-  <div id="link-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
-    <h2 style="font-weight:800; margin-bottom:24px;">カレンダー連携</h2>
+  <!-- 5. Rescue Recipe Screen -->
+  <div id="recipe-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
+    <h2 style="font-weight:900; margin-bottom:20px; font-size:1.6rem;">レスキュー・レシピ</h2>
     
-    <div class="settings-section">
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-        <div style="width:52px; height:52px; background:linear-gradient(135deg, #3b82f6, #60a5fa); border-radius:14px; display:flex; justify-content:center; align-items:center;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div style="flex:1;">
-          <p style="font-weight:800; font-size:1.1rem; color:#1e293b;">メールでカレンダー登録</p>
-          <p id="mail-link-status" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">メールアドレス未設定</p>
-        </div>
+    <div style="margin-bottom:28px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">本日の救出候補食材</p>
+      <div id="recipe-ingredients" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材を読み込んでいます...</p>
       </div>
-      
-      <div style="background:#f8fafc; padding:20px; border-radius:18px; border:1px solid #f1f5f9; margin-bottom:20px;">
-        <p style="font-size:0.8rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">連携のステップ</p>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <div style="display:flex; align-items:flex-start; gap:10px;">
-            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">1</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">設定から<b>通知用メールアドレス</b>を登録します。</p>
-          </div>
-          <div style="display:flex; align-items:flex-start; gap:10px;">
-            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">2</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">新規登録時に、賞味期限の<b>カレンダー(ics)付きメール</b>が届きます。</p>
-          </div>
-          <div style="display:flex; align-items:flex-start; gap:10px;">
-            <div style="background:var(--primary); color:#fff; width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; margin-top:2px;">3</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;">届いたメールの<b>「カレンダーに追加」</b>をタップするだけで登録完了！</p>
-          </div>
-        </div>
-      </div>
+    </div>
 
-      <button onclick="app.showScreen('settings-screen')" style="width:100%; padding:15px; border-radius:16px; border:none; background:#f1f5f9; color:#475569; font-weight:800; font-size:0.85rem;">設定画面でメールアドレスを登録する</button>
+    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">おすすめレシピ (本日6:00更新)</p>
+      <div style="background:rgba(16, 185, 129, 0.1); color:var(--primary); font-size:0.6rem; font-weight:900; padding:4px 10px; border-radius:30px;">LIMITED</div>
+    </div>
+    
+    <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
+      <!-- レシピカードがここに入ります -->
     </div>
   </div>
 
@@ -366,6 +350,19 @@
     <!-- 3. カレンダー連携設定 -->
     <div class="settings-section" style="margin-bottom:30px;">
       <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">カレンダー連携</p>
+      
+      <div style="background:#f0f7ff; padding:20px; border-radius:24px; border:1px solid #dbeafe; margin-bottom:20px;">
+        <p style="font-size:0.75rem; font-weight:900; color:#1e40af; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          連携の3ステップ
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">① 下記のメールアドレスを登録</p>
+          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">② 登録時にカレンダー(ics)付きメールが届く</p>
+          <p style="font-size:0.7rem; color:#1e40af; line-height:1.4;">③ メール内の予定をタップしてカレンダーへ保存</p>
+        </div>
+      </div>
+
       <div style="background:#f8fafc; padding:16px; border-radius:20px; border:1.5px solid #f1f5f9; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
           <p style="font-size:0.75rem; font-weight:800; color:#475569;">通知先メール</p>
@@ -418,7 +415,7 @@
         </div>
         <div style="margin-bottom:28px;">
           <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">賞味期限</label>
-          <input type="date" id="entry-exp" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600;">
+          <input type="date" id="entry-exp" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; box-sizing:border-box;">
         </div>
         <button onclick="app.saveEntry()" style="width:100%; padding:18px; border-radius:20px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:1.1rem; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition:0.2s;">保存する</button>
       </div>
@@ -447,11 +444,11 @@
   </div>
 
   <div id="bottom-nav">
-    <div class="nav-btn active" onclick="app.showScreen('list-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg><span>リスト</span></div>
-    <div class="nav-btn" onclick="app.showScreen('calendar-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>カレンダー</span></div>
-    <div class="nav-add-btn" onclick="app.toggleActionMenu()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-    <div class="nav-btn" onclick="app.showScreen('link-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>連携</span></div>
-    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>設定</span></div>
+    <div class="nav-item active" onclick="app.showScreen('list-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>リスト</span></div>
+    <div class="nav-item" onclick="app.showScreen('calendar-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>カレンダー</span></div>
+    <div style="width:60px;"></div>
+    <div class="nav-item" onclick="app.showScreen('recipe-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 19V5C18 3.89543 17.1046 3 16 3H8C6.89543 3 6 3.89543 6 5V19L12 16L18 19Z"/><path d="M12 11V6" stroke-linecap="round"/></svg><span>レシピ</span></div>
+    <div class="nav-item" onclick="app.showScreen('settings-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>設定</span></div>
   </div>
 
 </div>
@@ -462,6 +459,13 @@
     apiKey: localStorage.getItem('bestb4_gemini_key') || '',
     userEmail: localStorage.getItem('bestb4_user_email') || '',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
+    mockRecipes: [
+      { name: "残り野菜のコク旨カレー", main: "野菜・肉", time: "25分", url: "https://cookpad.com/search/カレー" },
+      { name: "きのこと鶏肉の和風パスタ", main: "鶏肉・きのこ", time: "15分", url: "https://cookpad.com/search/和風パスタ" },
+      { name: "豆腐と卵のふわとろ煮", main: "卵・豆腐", time: "10分", url: "https://cookpad.com/search/豆腐 卵" },
+      { name: "シャキシャキ野菜の肉巻き", main: "豚肉・野菜", time: "20分", url: "https://cookpad.com/search/肉巻き" },
+      { name: "たっぷりキャベツの回鍋肉", main: "キャベツ・豚肉", time: "15分", url: "https://cookpad.com/search/回鍋肉" }
+    ],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
@@ -494,11 +498,7 @@
     },
 
     updateLinkStatus() {
-      const status = document.getElementById('mail-link-status');
       const badge = document.getElementById('mail-status-badge');
-      if (status) {
-        status.innerText = this.userEmail ? `✅ ${this.userEmail} へ送信中` : 'メールアドレス未設定';
-      }
       if (badge) {
         badge.innerText = this.userEmail ? 'ON' : 'OFF';
         badge.style.background = this.userEmail ? 'var(--primary)' : '#e2e8f0';
@@ -530,6 +530,45 @@
         this.showToast('✅ メールを送信しました！カレンダーに追加してください');
         console.log("Mock ICS Content:\n", icsData);
       }, 1500);
+    },
+
+    async renderRecipes() {
+      const items = await this.getAllItems();
+      const today = new Date();
+      const threeDaysLater = new Date();
+      threeDaysLater.setDate(today.getDate() + 3);
+      
+      // 3日以内に期限が切れる食材を抽出
+      const rescueItems = items.filter(i => {
+        const exp = new Date(i.exp);
+        return !i.archivedAt && exp <= threeDaysLater;
+      });
+
+      const ingredientsContainer = document.getElementById('recipe-ingredients');
+      if (rescueItems.length === 0) {
+        ingredientsContainer.innerHTML = '<p style="font-size:0.75rem; color:var(--text-muted); opacity:0.7; padding:10px;">期限の近い食材はありません。バッチリです！</p>';
+      } else {
+        ingredientsContainer.innerHTML = rescueItems.slice(0, 5).map(item => `
+          <div style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:6px 14px; border-radius:30px; font-size:0.75rem; font-weight:800; border:1px solid rgba(239, 68, 68, 0.2);">
+            ⚠️ ${item.name}
+          </div>
+        `).join('');
+      }
+
+      const listContainer = document.getElementById('recipe-list');
+      listContainer.innerHTML = this.mockRecipes.map(r => `
+        <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:20px; border-radius:24px; display:flex; flex-direction:column; gap:12px; cursor:pointer; background:rgba(255,255,255,0.6);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="font-weight:900; font-size:1.1rem; color:#1e293b; flex:1;">${r.name}</div>
+            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">${r.time}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">メイン食材:</span>
+            <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.main}</span>
+          </div>
+          <button style="width:100%; padding:10px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px;">レシピを見る</button>
+        </div>
+      `).join('');
     },
 
     saveApiKey() {
@@ -571,14 +610,15 @@
       if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
       else { setTimeout(() => t.classList.add('active'), 50); }
       
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      const navIds = {'list-screen':0, 'calendar-screen':1, 'link-screen':2, 'settings-screen':3};
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      const navIds = {'list-screen':0, 'calendar-screen':1, 'recipe-screen':2, 'settings-screen':3};
       if(id === 'calendar-screen') this.renderCalendar();
-      if(id === 'settings-screen') {
+      if (id === 'recipe-screen') this.renderRecipes();
+      if (id === 'settings-screen') {
           this.renderHistory();
           if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
       }
-      if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
+      if(navIds[id] !== undefined) document.querySelectorAll('.nav-item')[navIds[id]].classList.add('active');
     },
 
     toggleActionMenu() {

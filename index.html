@@ -184,17 +184,18 @@
     .swipe-action-bg {
       position: absolute;
       inset: 0;
-      background: #10b981;
+      background: #fff;
       display: flex;
       align-items: center;
-      padding-left: 20px;
-      color: white;
-      font-weight: 800;
-      font-size: 0.9rem;
+      padding-left: 24px;
+      color: #ef4444;
+      font-weight: 900;
+      font-size: 1.4rem;
       border-radius: 20px;
       z-index: 1;
       opacity: 0;
       transition: opacity 0.2s;
+      border: 2px solid #fee2e2;
     }
     .item-card {
       /* Override margin-bottom from previous version to handle via container */
@@ -400,6 +401,34 @@
       </div>
 
       <button class="demo-btn" style="background:#fff; border-color:#fecaca; color:#ef4444; border-style:solid;" onclick="app.injectDemoData()">デモデータを20件投入</button>
+    </div>
+
+    <!-- 5. 使い方ガイド -->
+    <div class="settings-section" style="margin-bottom:100px; cursor:pointer;" onclick="app.toggleUsage()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">BestB4 の使い方</p>
+        <svg id="usage-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" style="transition:0.3s;"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div id="usage-content" style="display:none; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:20px;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📸</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">👉</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📬</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー連携:</b> メールアドレスを登録すると、新しい食品を保存した際にカレンダー登録用メールが届きます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">🥗</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」タブにそれを使った救出レシピが提案されます。</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -633,6 +662,36 @@
       `).join('');
     },
 
+    async consumeItem(id) {
+      const tx = this.db.transaction(['items'], 'readwrite');
+      const store = tx.objectStore('items');
+      const item = await new Promise(r => store.get(id).onsuccess = (e) => r(e.target.result));
+      
+      if (item) {
+        if (item.qty > 1) {
+          item.qty -= 1;
+          store.put(item);
+          this.showToast('1つ消費しました');
+        } else {
+          item.archivedAt = new Date().toISOString();
+          store.put(item);
+          this.showToast('使い切りました！');
+        }
+        tx.oncomplete = () => {
+          this.renderList();
+          this.renderCalendar();
+        };
+      }
+    },
+
+    toggleUsage() {
+      const content = document.getElementById('usage-content');
+      const arrow = document.getElementById('usage-arrow');
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? 'block' : 'none';
+      arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    },
+
     saveApiKey() {
       const key = document.getElementById('gemini-api-key').value;
       if (key && key !== '********') {
@@ -728,7 +787,7 @@
         const swipeWrap = document.createElement('div');
         swipeWrap.className = 'swipe-container';
         swipeWrap.innerHTML = `
-          <div class="swipe-action-bg">🚀 消費済み！</div>
+          <div class="swipe-action-bg">✔︎</div>
           <div class="item-card" id="item-${item.id}">
             <div class="item-icon">${this.getIcon(item.name, item.cat)}<div class="item-qty">${item.qty}</div></div>
             <div style="flex:1;">
@@ -792,13 +851,20 @@
       const store = trans.objectStore("items");
       const item = await new Promise(res => store.get(id).onsuccess = e => res(e.target.result));
       if (item) {
-        item.archivedAt = new Date().toISOString();
-        store.put(item);
+        if (item.qty > 1) {
+          item.qty -= 1;
+          store.put(item);
+          this.showToast(`${item.name}：1つ消費（残り${item.qty}個）`);
+        } else {
+          item.archivedAt = new Date().toISOString();
+          store.put(item);
+          this.showToast(`${item.name}：使い切りました！`);
+        }
       }
       trans.oncomplete = () => {
-        this.showToast('消費しました！');
         this.renderList();
         this.renderHistory();
+        this.renderCalendar();
       };
     },
 
@@ -934,7 +1000,7 @@
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button class="cal-btn edit" onclick="app.closeCalendarDetails(); app.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">編集</button>
-                    <button class="cal-btn consume" onclick="app.consumeFromCalendar(${item.id})">消費</button>
+                    <button class="cal-btn consume" onclick="app.consumeItem(${item.id}); app.closeCalendarDetails();">消費</button>
                 </div>
             </div>
         `).join('');

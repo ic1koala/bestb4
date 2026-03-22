@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   
   <!-- Gemini AI Vision integration -->
   
@@ -300,21 +301,28 @@
   </div>
 
   <!-- 5. Link Screen -->
-  <div id="link-screen" class="screen" style="padding:60px 24px;">
-    <h2 style="font-weight:800; margin-bottom:24px;">外部サービス連係</h2>
+  <div id="link-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
+    <h2 style="font-weight:800; margin-bottom:24px;">外部サービス連携</h2>
+    
     <div class="settings-section">
-      <div style="display:flex; align-items:center; gap:16px;">
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
         <div style="width:44px; height:44px; background:#4285f4; border-radius:12px; display:flex; justify-content:center; align-items:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M21.35 11.1H12.18v3.57h5.27c-.23 1.25-.94 2.31-2 2.98v2.48h3.24c1.89-1.74 2.98-4.3 2.98-7.39 0-.64-.06-1.26-.18-1.84z"/></svg></div>
-        <div style="flex:1;"><p style="font-weight:700;">Google カレンダー</p></div>
-        <button onclick="app.showToast('連係完了')" style="padding:6px 14px; border-radius:10px; border:none; background:#f1f5f9; font-weight:700; font-size:0.75rem;">連係</button>
+        <div style="flex:1;"><p style="font-weight:700;">Google カレンダー</p><p id="google-status" style="font-size:0.65rem; color:var(--text-muted);">認証が必要です</p></div>
+        <button id="google-link-btn" onclick="app.authGoogle()" style="padding:8px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem;">認証する</button>
       </div>
+      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4;">有効にすると、新規登録時に自動的にカレンダーへ期限の予定が作成されます。</p>
     </div>
+
     <div class="settings-section">
-      <div style="display:flex; align-items:center; gap:16px;">
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
         <div style="width:44px; height:44px; background:#06c755; border-radius:12px; display:flex; justify-content:center; align-items:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M24 10.3c0-4.7-5.4-8.5-12-8.5S0 5.6 0 10.3c0 4.2 4.3 7.7 10.1 8.4-.4-.8-.4-1.3-.1-1.9 1.8.8 1.9 1.1 2 1.3V18c6.6 0 12-3.8 12-7.7z"/></svg></div>
-        <div style="flex:1;"><p style="font-weight:700;">LINE 通知</p></div>
-        <button onclick="app.showToast('通知ON')" style="padding:6px 14px; border-radius:10px; border:none; background:#f1f5f9; font-weight:700; font-size:0.75rem;">ON</button>
+        <div style="flex:1;"><p style="font-weight:700;">LINE 通知</p><p id="line-status" style="font-size:0.65rem; color:var(--text-muted);">Webhook未設定</p></div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">自動送信</span>
+          <input type="checkbox" id="line-auto-toggle" onchange="app.saveExternalSettings()" style="width:18px; height:18px; accent-color:var(--primary);">
+        </div>
       </div>
+      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4;">Make(Integromat)等のWebhookを設定すると、登録時にLINE通知を送ります。</p>
     </div>
   </div>
 
@@ -335,6 +343,22 @@
         <p style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem;">履歴はありません</p>
       </div>
       <button class="demo-btn" style="margin-top:12px; border-color:#f1f5f9; color:var(--text-muted); font-size:0.7rem;" onclick="app.clearHistory()">履歴をすべて削除</button>
+    </div>
+
+    <div class="settings-section">
+      <p style="font-size:0.8rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">外部連携設定</p>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:6px;">Google Cloud Client ID</label>
+        <input type="text" id="google-client-id" placeholder="xxxxx.apps.googleusercontent.com" style="width:100%; padding:12px; border-radius:12px; border:1.5px solid #f1f5f9; outline:none; font-size:0.8rem;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-muted); margin-bottom:6px;">LINE Webhook URL (Make等)</label>
+        <input type="text" id="line-webhook-url" placeholder="https://hook.make.com/xxxx" style="width:100%; padding:12px; border-radius:12px; border:1.5px solid #f1f5f9; outline:none; font-size:0.8rem;">
+      </div>
+      
+      <button class="demo-btn" onclick="app.saveExternalSettings()" style="border-style:solid; font-size:0.8rem; padding:12px;">連携先設定を保存</button>
     </div>
 
     <div class="settings-section">
@@ -422,6 +446,11 @@
   const app = {
     db: null, stream: null, editingId: null, currentCat: "すべて",
     apiKey: localStorage.getItem('bestb4_gemini_key') || '',
+    googleClientId: localStorage.getItem('bestb4_google_id') || '',
+    lineWebhookUrl: localStorage.getItem('bestb4_line_webhook') || '',
+    lineAutoEnabled: localStorage.getItem('bestb4_line_auto') === 'true',
+    googleAccessToken: null,
+    tokenClient: null,
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -443,6 +472,90 @@
       this.updateDateLabel();
       this.renderList();
       if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
+      document.getElementById('google-client-id').value = this.googleClientId;
+      document.getElementById('line-webhook-url').value = this.lineWebhookUrl;
+      document.getElementById('line-auto-toggle').checked = this.lineAutoEnabled;
+      this.updateStatusLabels();
+      this.initGapi();
+    },
+
+    saveExternalSettings() {
+      this.googleClientId = document.getElementById('google-client-id').value;
+      this.lineWebhookUrl = document.getElementById('line-webhook-url').value;
+      this.lineAutoEnabled = document.getElementById('line-auto-toggle').checked;
+      
+      localStorage.setItem('bestb4_google_id', this.googleClientId);
+      localStorage.setItem('bestb4_line_webhook', this.lineWebhookUrl);
+      localStorage.setItem('bestb4_line_auto', this.lineAutoEnabled);
+      
+      this.updateStatusLabels();
+      this.initGapi();
+      this.showToast('設定を保存しました');
+    },
+
+    updateStatusLabels() {
+      const gStat = document.getElementById('google-status');
+      const lStat = document.getElementById('line-status');
+      if (gStat) gStat.innerText = this.googleAccessToken ? '✅ 認証済み' : (this.googleClientId ? '認証が必要です' : 'Client ID未設定');
+      if (lStat) lStat.innerText = this.lineWebhookUrl ? '✅ 設定済み' : 'Webhook未設定';
+    },
+
+    initGapi() {
+      if (!this.googleClientId || typeof google === 'undefined') return;
+      this.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: this.googleClientId,
+        scope: 'https://www.googleapis.com/auth/calendar.events',
+        callback: (resp) => {
+          if (resp.access_token) {
+            this.googleAccessToken = resp.access_token;
+            this.updateStatusLabels();
+            const btn = document.getElementById('google-link-btn');
+            if(btn) btn.innerText = '認証済み';
+            this.showToast('Google連携が完了しました');
+          }
+        },
+      });
+    },
+
+    authGoogle() {
+      if (!this.tokenClient) return this.showToast('先に設定でClient IDを入力してください');
+      this.tokenClient.requestAccessToken({ prompt: 'consent' });
+    },
+
+    async createCalendarEvent(item) {
+      if (!this.googleAccessToken) return;
+      const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+      const event = {
+        summary: `🍴 賞味期限: ${item.name}`,
+        description: `BestB4より自動登録\nアイテム: ${item.name}\nカテゴリー: ${item.cat}\n数量: ${item.qty}`,
+        start: { date: item.exp },
+        end: { date: item.exp },
+        reminders: { useDefault: true }
+      };
+      
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${this.googleAccessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(event)
+        });
+        if (resp.ok) console.log('Google Calendar event created');
+      } catch (e) { console.error('GCal Error:', e); }
+    },
+
+    async sendLINENotification(item) {
+      if (!this.lineWebhookUrl || !this.lineAutoEnabled) return;
+      const message = `🔔 新しいアイテムを登録しました！\n\n【${item.name}】\n賞味期限: ${item.exp}\nカテゴリー: ${item.cat}\n数量: ${item.qty}\n\n期限までに消費しましょう！`;
+      
+      try {
+        await fetch(this.lineWebhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message, data: item })
+        });
+        console.log('LINE Notification sent');
+      } catch (e) { console.error('LINE Notify Error:', e); }
     },
 
     saveApiKey() {
@@ -952,7 +1065,13 @@
       const trans = this.db.transaction("items", "readwrite");
       const store = trans.objectStore("items");
       if(this.editingId) store.put({ id: this.editingId, name, cat, qty, exp });
-      else store.add({ name, cat, qty, exp, reg: new Date().toISOString() });
+      else {
+        const newItem = { name, cat, qty, exp, reg: new Date().toISOString() };
+        store.add(newItem);
+        // 統合連携
+        this.createCalendarEvent(newItem);
+        this.sendLINENotification(newItem);
+      }
       this.closeEntry(); this.renderList(); this.showToast('保存しました');
       if(document.getElementById('calendar-screen').classList.contains('active')) this.renderCalendar();
     },

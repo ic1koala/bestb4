@@ -220,6 +220,14 @@
     }
     .history-item .icon { font-size: 1.2rem; }
     .history-date { font-size: 0.7rem; color: var(--text-muted); }
+    @keyframes bounce { to { transform: translateY(-10px); opacity: 0.3; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ai-pulse { animation: pulseAnim 2s infinite ease-in-out; }
+    @keyframes pulseAnim { 
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } 
+      50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(16, 185, 129, 0.6); } 
+      100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } 
+    }
   </style>
 </head>
 <body>
@@ -432,8 +440,23 @@
     </div>
   </div>
 
-  <!-- Bottom Nav -->
-  <!-- 8. Action Menu Overlay -->
+  <!-- 8. AI Analysis Loading Overlay -->
+  <div id="ocr-loading" class="overlay" style="background:rgba(255,255,255,0.8); backdrop-filter:blur(15px); z-index:4000;">
+    <div style="text-align:center;">
+      <div class="ai-pulse" style="width:100px; height:100px; background:linear-gradient(135deg, var(--primary), #3b82f6); border-radius:50%; margin:0 auto 30px; display:flex; justify-content:center; align-items:center; box-shadow:0 0 40px rgba(16, 185, 129, 0.4);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 2A10 10 0 0 0 2 12M12 22A10 10 0 0 0 22 12"/><path d="M12 12L16 10"/></svg>
+      </div>
+      <h3 style="font-weight:900; color:#1e293b; margin-bottom:12px; font-size:1.3rem;">AI解析中</h3>
+      <p style="color:var(--text-muted); font-size:0.85rem; font-weight:700;">最先端AIが画像から<br>商品名と重要期限を読み取っています...</p>
+      <div style="margin-top:40px; display:flex; justify-content:center; gap:8px;">
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate;"></div>
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate 0.2s;"></div>
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate 0.4s;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Action Menu Overlay -->
   <div id="action-menu" onclick="app.toggleActionMenu()">
     <div class="action-options" onclick="event.stopPropagation()">
       <div class="action-item" onclick="app.startCamera();">
@@ -1007,13 +1030,15 @@
         reader.onload = async (e) => {
             const base64Img = e.target.result.split(',')[1];
             this.showToast('AI解析中...');
-            document.getElementById('ocr-status').innerText = "ファイルを解析中...";
+            document.getElementById('ocr-loading').style.display = 'flex';
             try {
                 const result = await this.callGeminiAPI(base64Img);
                 this.parseGeminiResult(result);
             } catch(err) {
                 console.error(err);
                 this.showToast('解析失敗: ' + err.message);
+            } finally {
+                document.getElementById('ocr-loading').style.display = 'none';
             }
         };
         reader.readAsDataURL(file);
@@ -1033,7 +1058,7 @@
       const ctx = c.getContext('2d');
       ctx.drawImage(v, startX, startY, cropSize, cropSize, 0, 0, 1024, 1024);
       
-      document.getElementById('ocr-status').innerText = "AI解析中 (Gemini)...";
+      document.getElementById('ocr-loading').style.display = 'flex';
       const base64Img = c.toDataURL('image/jpeg', 0.9).split(',')[1];
       
       try {
@@ -1042,7 +1067,8 @@
       } catch(e) { 
           console.error("Gemini Error:", e);
           this.showToast('解析失敗: ' + e.message); 
-          document.getElementById('ocr-status').innerText = "解析失敗";
+      } finally {
+          document.getElementById('ocr-loading').style.display = 'none';
       }
     },
 

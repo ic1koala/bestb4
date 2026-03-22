@@ -873,10 +873,9 @@
       try {
         const payload = { action: this.editingId ? 'update' : 'add', email: this.userEmail, id: this.editingId, name, cat, qty, exp };
         
-        // GAS対策: no-corsモードを使いつつ、text/plainで送る
         await fetch(this.gasStorageUrl, {
           method: 'POST',
-          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         });
         
@@ -1357,7 +1356,7 @@
         for (const item of demoData) {
           await fetch(this.gasStorageUrl, {
             method: 'POST',
-            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ action: 'add', email: this.userEmail, ...item, reg: new Date().toISOString() })
           });
         }
@@ -1469,7 +1468,7 @@
       try {
         await fetch(this.gasStorageUrl, {
           method: 'POST',
-          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'add', email: this.userEmail, name, exp, qty: 1, cat: res.cat || 'その他', reg: new Date().toISOString() })
         });
       } catch (e) {

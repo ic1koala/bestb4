@@ -315,6 +315,11 @@
     </div>
     
     <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
+      <!-- ローディング用スケルトン -->
+      <div id="recipe-loader" style="text-align:center; padding:40px 20px;">
+        <div style="width:30px; height:30px; border:3px solid #f1f5f9; border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px;"></div>
+        <p style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">最新のレシピを読み込み中...</p>
+      </div>
       <!-- レシピカードがここに入ります -->
     </div>
   </div>
@@ -459,13 +464,9 @@
     apiKey: localStorage.getItem('bestb4_gemini_key') || '',
     userEmail: localStorage.getItem('bestb4_user_email') || '',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
-    mockRecipes: [
-      { name: "残り野菜のコク旨カレー", main: "野菜・肉", time: "25分", url: "https://cookpad.com/search/カレー" },
-      { name: "きのこと鶏肉の和風パスタ", main: "鶏肉・きのこ", time: "15分", url: "https://cookpad.com/search/和風パスタ" },
-      { name: "豆腐と卵のふわとろ煮", main: "卵・豆腐", time: "10分", url: "https://cookpad.com/search/豆腐 卵" },
-      { name: "シャキシャキ野菜の肉巻き", main: "豚肉・野菜", time: "20分", url: "https://cookpad.com/search/肉巻き" },
-      { name: "たっぷりキャベツの回鍋肉", main: "キャベツ・豚肉", time: "15分", url: "https://cookpad.com/search/回鍋肉" }
-    ],
+    mockRecipes: [],
+    recipeCacheKey: 'bestb4_recipe_cache',
+    recipeTimestampKey: 'bestb4_recipe_ts',
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
@@ -533,18 +534,21 @@
     },
 
     async renderRecipes() {
+      const loader = document.getElementById('recipe-loader');
+      const listContainer = document.getElementById('recipe-list');
+      const ingredientsContainer = document.getElementById('recipe-ingredients');
+      
+      // 1. 食材バッジの描画（期限3日以内）
       const items = await this.getAllItems();
       const today = new Date();
       const threeDaysLater = new Date();
       threeDaysLater.setDate(today.getDate() + 3);
       
-      // 3日以内に期限が切れる食材を抽出
       const rescueItems = items.filter(i => {
         const exp = new Date(i.exp);
         return !i.archivedAt && exp <= threeDaysLater;
       });
 
-      const ingredientsContainer = document.getElementById('recipe-ingredients');
       if (rescueItems.length === 0) {
         ingredientsContainer.innerHTML = '<p style="font-size:0.75rem; color:var(--text-muted); opacity:0.7; padding:10px;">期限の近い食材はありません。バッチリです！</p>';
       } else {
@@ -555,18 +559,50 @@
         `).join('');
       }
 
-      const listContainer = document.getElementById('recipe-list');
-      listContainer.innerHTML = this.mockRecipes.map(r => `
+      // 2. レシピデータの取得（キャッシュ or GAS）
+      const gasUrl = "https://script.google.com/macros/s/AKfycbxQDtwXNuwcIuPtqRNlJmKBH_xExJ4rqZ_uAFnShMkj9wdIYqX10YopADqm3BNnDRgS/exec";
+      let recipes = [];
+      
+      const cache = localStorage.getItem(this.recipeCacheKey);
+      const ts = localStorage.getItem(this.recipeTimestampKey);
+      const now = new Date().getTime();
+      
+      // 24時間以内のキャッシュがあれば使用
+      if (cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
+        recipes = JSON.parse(cache);
+      } else {
+        if (loader) loader.style.display = 'block';
+        try {
+          const resp = await fetch(gasUrl);
+          if (!resp.ok) throw new Error('Network response was not ok');
+          recipes = await resp.json();
+          // キャッシュ保存
+          localStorage.setItem(this.recipeCacheKey, JSON.stringify(recipes));
+          localStorage.setItem(this.recipeTimestampKey, now.toString());
+        } catch (e) {
+          console.error('GAS Fetch Error:', e);
+          listContainer.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
+              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">本日の提案は準備中です。<br>手動で食材をチェックしましょう！</p>
+            </div>
+          `;
+          return;
+        }
+      }
+
+      // 3. レシピカードの描画
+      if (loader) loader.style.display = 'none';
+      listContainer.innerHTML = recipes.slice(0, 5).map(r => `
         <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:20px; border-radius:24px; display:flex; flex-direction:column; gap:12px; cursor:pointer; background:rgba(255,255,255,0.6);">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="font-weight:900; font-size:1.1rem; color:#1e293b; flex:1;">${r.name}</div>
-            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">${r.time}</div>
+            <div style="font-weight:900; font-size:1.1rem; color:#1e293b; flex:1; line-height:1.3;">${r.title}</div>
+            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">約15分</div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">メイン食材:</span>
-            <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.main}</span>
+            <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">本日のメイン食材:</span>
+            <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.ing}</span>
           </div>
-          <button style="width:100%; padding:10px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px;">レシピを見る</button>
+          <button style="width:100%; padding:10px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px; box-shadow:0 4px 12px rgba(16, 185, 129, 0.1);">レシピを詳しく見る</button>
         </div>
       `).join('');
     },

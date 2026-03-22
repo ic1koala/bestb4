@@ -491,7 +491,7 @@
       <div class="action-item" onclick="document.getElementById('file-upload').click();">
         <i style="background:#eff6ff; color:#3b82f6;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></i>
         <span>写真をアップロード</span>
-        <input type="file" id="file-upload" hidden accept="image/*" onchange="app.handleFileUpload(event); app.toggleActionMenu();">
+        <input type="file" id="file-upload" hidden accept="image/*" multiple onchange="app.handleFileUpload(event); app.toggleActionMenu();">
       </div>
       <div class="action-item" onclick="app.openManualEntry();">
         <i style="background:#fef2f2; color:#ef4444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></i>
@@ -1084,26 +1084,69 @@
     },
 
     async handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
         if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
         
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const base64Img = e.target.result.split(',')[1];
-            this.showToast('AI解析中...');
-            document.getElementById('ocr-loading').style.display = 'flex';
+        const loader = document.getElementById('ocr-loading');
+        const loaderText = loader.querySelector('p');
+        const defaultText = "最先端AIが画像から<br>商品名と重要期限を読み取っています...";
+        
+        if (loader) loader.style.display = 'flex';
+
+        let successCount = 0;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (loaderText) loaderText.innerHTML = `${files.length}枚中 ${i+1}枚目を解析中...`;
+            
             try {
+                const base64Img = await this.fileToBase64(file);
                 const result = await this.callGeminiAPI(base64Img);
-                this.parseGeminiResult(result);
+                
+                if (files.length === 1) {
+                    // 1枚のみなら確認モーダルを開く
+                    this.parseGeminiResult(result);
+                } else {
+                    // 複数枚なら自動保存
+                    await this.saveEntryDirectly(result);
+                    successCount++;
+                }
             } catch(err) {
-                console.error(err);
-                this.showToast('解析失敗: ' + err.message);
-            } finally {
-                document.getElementById('ocr-loading').style.display = 'none';
+                console.error(`File ${i} Error:`, err);
+                this.showToast(`${file.name}の解析に失敗しました`);
             }
-        };
+        }
+
+        if (loader) loader.style.display = 'none';
+        if (loaderText) loaderText.innerHTML = defaultText;
+        if (successCount > 0) {
+            this.showToast(`${successCount}件のアイテムを追加しました！`);
+            this.renderList();
+            this.renderCalendar();
+        }
+    },
+
+    fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
         reader.readAsDataURL(file);
+      });
+    },
+
+    async saveEntryDirectly(res) {
+      const item = {
+        name: res.name || "商品",
+        exp: res.exp || new Date().toISOString().split('T')[0],
+        qty: 1,
+        cat: res.cat || 'その他',
+        createdAt: new Date().toISOString()
+      };
+      
+      const tx = this.db.transaction(['items'], 'readwrite');
+      tx.objectStore('items').add(item);
+      return new Promise(r => tx.oncomplete = r);
     },
 
     async captureAndOCR() {

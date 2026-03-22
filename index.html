@@ -15,39 +15,35 @@
     :root {
       --primary: #10b981;
       --primary-light: #34d399;
-      --bg-color: #ffffff;
-      --surface-color: rgba(255, 255, 255, 0.7);
+      --bg: #f8fafc;
       --text-main: #1f2937;
       --text-muted: #6b7280;
       --glass-bg: rgba(255, 255, 255, 0.4);
       --glass-border: rgba(255, 255, 255, 0.5);
-      --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
-      --danger: #ef4444;
       --splash-bg: #ccff99;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Noto Sans JP', sans-serif; -webkit-tap-highlight-color: transparent; }
     
-    body {
+    html, body {
+      height: 100dvh; width: 100vw; overflow: hidden;
       background: #fbfbfd;
       background-image: 
         radial-gradient(at 0% 0%, hsla(160, 100%, 95%, 1) 0px, transparent 50%),
         radial-gradient(at 100% 100%, hsla(190, 100%, 96%, 1) 0px, transparent 50%);
       color: var(--text-main);
-      height: 100vh; width: 100vw; overflow: hidden;
-      display: flex; justify-content: center; align-items: center;
     }
 
     #app-container {
-      width: 100%; height: 100%; max-width: 480px; position: relative; overflow: hidden;
-      display: flex; flex-direction: column; background: transparent;
+      width: 100%; height: 100dvh; max-width: 480px; position: relative; margin: 0 auto;
+      display: flex; flex-direction: column; background: transparent; overflow: hidden;
     }
 
     .screen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100dvh;
       display: none; flex-direction: column; z-index: 10; overflow: hidden;
       opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
-      padding-bottom: 90px;
+      padding-bottom: calc(90px + env(safe-area-inset-bottom));
     }
     .screen.active { display: flex; opacity: 1; }
 
@@ -129,7 +125,7 @@
 
     /* Bottom Nav */
     #bottom-nav {
-      position: absolute; bottom: 12px; left: 12px; right: 12px; height: 74px;
+      position: absolute; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 74px;
       background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
       border-radius: 32px; border: 1px solid rgba(255,255,255,0.3);
       display: none; justify-content: space-between; align-items: center; z-index: 1000;
@@ -417,18 +413,18 @@
       <div>
         <div style="margin-bottom:20px;">
           <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">商品名</label>
-          <input type="text" id="entry-name" placeholder="例: 牛乳" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; transition:0.2s;">
+          <input type="text" id="entry-name" placeholder="例: 牛乳" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; box-sizing:border-box; transition:0.2s;">
         </div>
         <div style="display:flex; gap:12px; margin-bottom:20px;">
           <div style="flex:1.6;">
             <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">カテゴリー</label>
-            <select id="entry-cat" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:0.95rem; font-weight:600; appearance:none;">
+            <select id="entry-cat" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:0.95rem; font-weight:600; appearance:none; box-sizing:border-box;">
               <option>肉</option><option>魚</option><option>野菜</option><option>乳製品・卵</option><option>飲料</option><option>調味料</option><option>作り置き</option><option>缶詰</option><option>お菓子</option><option>インスタント</option><option>冷凍食品</option><option>レトルト</option><option>乾物</option><option>その他</option>
             </select>
           </div>
           <div style="flex:1;">
             <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">数量</label>
-            <input type="number" id="entry-qty" value="1" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; text-align:center;">
+            <input type="number" id="entry-qty" value="1" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; text-align:center; box-sizing:border-box;">
           </div>
         </div>
         <div style="margin-bottom:28px;">
@@ -1077,7 +1073,7 @@
       const payload = {
         contents: [{
           parts: [
-            { text: "Extract the food item name and its expiration date from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\"}. If the date is unclear, estimate or use today. If multiple items, pick the most prominent one." },
+            { text: "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'." },
             { inline_data: { mime_type: "image/jpeg", data: base64Image } }
           ]
         }],
@@ -1120,7 +1116,7 @@
         name: res.name || "商品", 
         exp: res.exp || new Date().toISOString().split('T')[0], 
         qty: 1, 
-        cat: 'その他' 
+        cat: res.cat || 'その他' 
       });
       document.getElementById('ocr-status').innerText = "読込完了";
     },

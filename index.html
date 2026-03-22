@@ -389,7 +389,10 @@
 
       <div style="margin-bottom:20px;">
         <p style="font-size:0.7rem; font-weight:800; color:#b91c1c; margin-bottom:8px;">AI設定 (Gemini API)</p>
-        <input type="password" id="gemini-api-key" placeholder="APIキーを入力" onchange="app.saveApiKey()" style="width:100%; padding:12px; border-radius:12px; border:1px solid #fee2e2; outline:none; font-size:0.85rem; background:#fff;">
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="gemini-api-key" placeholder="APIキーを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #fee2e2; outline:none; font-size:0.85rem; background:#fff;">
+          <button onclick="app.saveApiKey()" style="padding:10px 16px; border-radius:12px; border:none; background:#ef4444; color:#fff; font-weight:800; font-size:0.75rem;">保存</button>
+        </div>
       </div>
 
       <button class="demo-btn" style="background:#fff; border-color:#fecaca; color:#ef4444; border-style:solid;" onclick="app.injectDemoData()">デモデータを20件投入</button>

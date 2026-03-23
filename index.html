@@ -308,7 +308,10 @@
 
   <!-- 5. Rescue Recipe Screen -->
   <div id="recipe-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
-    <h2 style="font-weight:900; margin-bottom:20px; font-size:1.6rem;">レスキュー・レシピ</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="font-weight:900; font-size:1.6rem; margin:0;">レスキュー・レシピ</h2>
+      <button onclick="app.renderRecipes(true)" style="background:var(--primary); color:#fff; border:none; padding:8px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; cursor:pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">更新🔄</button>
+    </div>
     
     <div style="margin-bottom:28px;">
       <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">本日の救出候補食材</p>
@@ -528,7 +531,7 @@
     apiKey: safeStorage.get('bestb4_gemini_key'),
     userEmail: safeStorage.get('bestb4_user_email'),
     isPaid: safeStorage.get('bestb4_paid_status', 'false') === 'true',
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycby04AgZ2rAvC8PU0eQsNRQUSHspoh3HaIwDblYCzdgW10TwunxO1145lMnB7D5FWS-Gqw/exec',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -676,7 +679,8 @@
       }, 1500);
     },
 
-    async renderRecipes() {
+    async renderRecipes(forceUpdate = false) {
+      if (forceUpdate) this.showToast('最新のレシピから取得しています...');
       const loader = document.getElementById('recipe-loader');
       const listContainer = document.getElementById('recipe-list');
       const ingredientsContainer = document.getElementById('recipe-ingredients');
@@ -710,7 +714,7 @@
       const ts = safeStorage.get(this.recipeTimestampKey);
       const now = new Date().getTime();
       
-      if (cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
+      if (!forceUpdate && cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
         recipes = JSON.parse(cache);
       } else {
         if (loader) loader.style.display = 'block';
@@ -914,7 +918,9 @@
       this.closeEntry();
       if(id !== 'action-menu') document.getElementById('action-menu').classList.remove('active');
 
-      const t = document.getElementById(id); t.style.display = 'flex';
+      const t = document.getElementById(id);
+      t.style.display = t.classList.contains('main-content-layout') ? 'flex' : 'block';
+      
       if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
       else { setTimeout(() => t.classList.add('active'), 50); }
       
@@ -971,7 +977,12 @@
       }
 
       items.forEach(item => {
-        const diff = Math.ceil((new Date(item.exp) - new Date()) / 86400000);
+        const itemDate = new Date(item.exp);
+        const today = new Date();
+        itemDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        const diff = Math.ceil((itemDate - today) / 86400000);
+        
         const swipeWrap = document.createElement('div');
         swipeWrap.className = 'swipe-container';
         swipeWrap.innerHTML = `
@@ -980,10 +991,11 @@
             <div class="item-icon">${this.getIcon(item.name, item.cat)}<div class="item-qty">${item.qty}</div></div>
             <div style="flex:1;">
               <div style="font-weight:700;">${item.name}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">期限: ${item.exp}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">期限: ${this.formatDateForDisplay(item.exp)}</div>
             </div>
-            <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
+            <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '期限切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
           </div>
+
         `;
         container.appendChild(swipeWrap);
         
@@ -1160,9 +1172,9 @@
                 if (dayNum > 0 && dayNum <= daysInMonth) {
                     cell.innerText = dayNum;
                     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-                    if (dateStr === new Date().toISOString().split('T')[0]) cell.classList.add('today');
+                    if (dateStr === this.formatDateForInput(new Date().toISOString())) cell.classList.add('today');
                     
-                    const expiring = activeItems.filter(item => item.exp === dateStr);
+                    const expiring = activeItems.filter(item => this.formatDateForInput(item.exp) === dateStr);
                     if (expiring.length > 0) {
                         const badge = document.createElement('div');
                         badge.className = 'cal-badge';
@@ -1182,7 +1194,8 @@
     },
 
     showCalendarDetails(date, items) {
-        document.getElementById('cal-detail-title').innerText = `${date} のアイテム`;
+        const dispDate = this.formatDateForDisplay(date);
+        document.getElementById('cal-detail-title').innerText = `${dispDate} のアイテム`;
         const list = document.getElementById('cal-detail-list');
         list.innerHTML = items.map(item => `
             <div class="cal-detail-item">
@@ -1550,7 +1563,7 @@
       document.getElementById('action-menu').classList.remove('active');
       document.getElementById('entry-title').innerText = "アイテム登録";
       document.getElementById('entry-name').value = data ? data.name : "";
-      document.getElementById('entry-exp').value = data ? data.exp : new Date().toISOString().split('T')[0];
+      document.getElementById('entry-exp').value = data ? this.formatDateForInput(data.exp) : this.formatDateForInput(new Date().toISOString());
       document.getElementById('entry-cat').value = data ? data.cat : "その他";
       document.getElementById('entry-qty').value = data ? data.qty : "1";
       document.getElementById('entry-overlay').style.display = 'flex';
@@ -1563,11 +1576,27 @@
       document.getElementById('entry-name').value = item.name;
       document.getElementById('entry-cat').value = item.cat || "その他";
       document.getElementById('entry-qty').value = item.qty || "1";
-      document.getElementById('entry-exp').value = item.exp;
+      document.getElementById('entry-exp').value = this.formatDateForInput(item.exp);
       document.getElementById('entry-overlay').style.display = 'flex';
     },
     closeEntry() { document.getElementById('entry-overlay').style.display = 'none'; document.getElementById('bottom-nav').style.display='flex'; },
-    // 重複した不要な関数の宣告部分を削除
+
+    formatDateForDisplay(dateStr) {
+      if(!dateStr) return '';
+      const d = new Date(dateStr);
+      if(isNaN(d.valueOf())) return dateStr;
+      return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+    },
+    
+    formatDateForInput(dateStr) {
+      if(!dateStr) return '';
+      const d = new Date(dateStr);
+      if(isNaN(d.valueOf())) return typeof dateStr === 'string' ? dateStr.substring(0, 10) : '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    },
 
 
     async checkReminders() {

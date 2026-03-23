@@ -845,13 +845,18 @@
     async getAllItems() {
       if (!this.userEmail) return [];
       try {
-        const resp = await fetch(`${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail)}`);
-        if (!resp.ok) return [];
+        const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}`;
+        const resp = await fetch(url, { redirect: 'follow' });
+        if (!resp.ok) {
+           console.error('GAS Storage Error - Status:', resp.status);
+           return null;
+        }
         const data = await resp.json();
         return Array.isArray(data) ? data : [];
       } catch (e) {
-        console.error('GAS Storage Error:', e);
-        return null; // Return null to indicate error
+        console.error('GAS Connection Error:', e);
+        this.lastError = e.message; // Capture to show in UI
+        return null;
       }
     },
 
@@ -923,10 +928,11 @@
 
       const t = document.getElementById(id);
       if(!t) return;
-      t.style.display = t.classList.contains('main-content-layout') ? 'flex' : 'block';
+      t.style.display = 'flex'; // Use flex for all full-screen views
       
       if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
       else { setTimeout(() => t.classList.add('active'), 50); }
+
       
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const navIds = {'list-screen':0, 'calendar-screen':1, 'recipe-screen':2, 'settings-screen':3};
@@ -953,11 +959,22 @@
       const sort = document.getElementById('sort-order').value;
       
       const allItems = await this.getAllItems();
-      if (!allItems && this.userEmail) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444; font-size:0.9rem;">データの取得に失敗しました。<br>通信環境またはGASの設定を確認してください。</div>`;
+      if (allItems === null && this.userEmail) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:50px 20px; color:#ef4444; background:rgba(255,255,255,0.6); border-radius:24px; border:2px dashed rgba(239, 68, 68, 0.2);">
+            <div style="font-size:2.5rem; margin-bottom:16px;">📶</div>
+            <p style="font-size:0.95rem; font-weight:900; margin-bottom:8px;">データの同期に失敗しました</p>
+            <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5; margin-bottom:20px;">
+              GASの公開設定(全員/Anyone)か、インターネット接続を確認してください。<br>
+              <small style="opacity:0.7;">エラー内容: ${this.lastError || '不明なエラー'}</small>
+            </p>
+            <button onclick="app.renderList()" style="width:100%; padding:14px; border-radius:14px; background:var(--primary); color:#fff; border:none; font-weight:800; cursor:pointer;">再試行する 🔄</button>
+          </div>
+        `;
         return;
       }
       const activeItems = (allItems || []).filter(i => !i.archivedAt);
+
 
       
       const activeCats = ["すべて", ...this.categories.filter(c => activeItems.some(i => i.cat === c))];

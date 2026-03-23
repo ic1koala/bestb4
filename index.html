@@ -528,7 +528,7 @@
     apiKey: safeStorage.get('bestb4_gemini_key'),
     userEmail: safeStorage.get('bestb4_user_email'),
     isPaid: safeStorage.get('bestb4_paid_status', 'false') === 'true',
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycby04AgZ2rAvC8PU0eQsNRQUSHspoh3HaIwDblYCzdgW10TwunxO1145lMnB7D5FWS-Gqw/exec',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -875,7 +875,7 @@
         
         await fetch(this.gasStorageUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
+          headers: { 'Content-Type': 'text/plain' }, 
           body: JSON.stringify(payload)
         });
         
@@ -1307,21 +1307,7 @@
       this.showToast('画像を保存しました');
     },
 
-    async getAllItems() {
-      if (!this.userEmail) return [];
-      try {
-        const resp = await fetch(`${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail)}`);
-        if (!resp.ok) {
-          console.error('Failed to fetch items from GAS:', resp.status, resp.statusText);
-          return [];
-        }
-        const data = await resp.json();
-        return Array.isArray(data) ? data : [];
-      } catch (e) {
-        console.error('GAS Storage Error:', e);
-        return [];
-      }
-    },
+
 
     async injectDemoData() {
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');

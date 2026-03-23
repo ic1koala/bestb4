@@ -357,7 +357,7 @@
         <p style="font-size:0.7rem; opacity:0.9;">賞味期限が7日より先のアイテムも<br>AIで自動登録できるようになります。</p>
         <div style="margin-top:20px; display:flex; gap:8px;">
           <input type="password" id="premium-code" placeholder="パスワードを入力" style="flex:1; padding:12px; border-radius:12px; border:none; background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; outline:none;">
-          <button onclick="app.checkPremiumCode()" style="padding:10px 16px; border-radius:12px; border:none; background:#fff; color:var(--primary); font-weight:800; font-size:0.75rem; cursor:pointer;">適用</button>
+          <button onclick="app.checkPremiumCode(true)" style="padding:10px 16px; border-radius:12px; border:none; background:#fff; color:var(--primary); font-weight:800; font-size:0.75rem; cursor:pointer;">適用</button>
         </div>
         <p id="premium-status" style="font-size:0.65rem; margin-top:8px; font-weight:800;"></p>
       </div>
@@ -558,7 +558,7 @@
         const keyInput = document.getElementById('gemini-api-key');
         if (keyInput) keyInput.value = '********';
       }
-      this.checkPremiumCode();
+      this.checkPremiumCode(false);
     },
 
     updateEmailInputState() {
@@ -600,7 +600,8 @@
         this.userEmail = val;
         safeStorage.set('bestb4_user_email', val);
         this.updateEmailInputState();
-        this.showToast('アカウント設定を保存しました');
+        this.renderList(); // Refresh list immediately with new email
+        this.showToast('メールアドレスを保存しました');
       }
     },
 
@@ -774,7 +775,7 @@
         try {
           const resp = await fetch(this.gasStorageUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors',
             body: JSON.stringify({
               action: 'update',
               email: this.userEmail,
@@ -784,17 +785,13 @@
             })
           });
 
-          if (resp.ok) {
-            this.showToast(toastMsg);
-            this.renderList();
-            this.renderCalendar();
-            this.renderHistory();
-          } else {
-            this.showToast('消費処理に失敗しました');
-          }
+          this.showToast(toastMsg);
+          this.renderList();
+          this.renderCalendar();
+          this.renderHistory();
         } catch (e) {
           console.error('Consume Item Error:', e);
-          this.showToast('消費処理中にエラーが発生しました');
+          this.showToast('消費中にエラーが発生しました');
         }
       }
     },
@@ -820,22 +817,28 @@
       }
     },
 
-    checkPremiumCode() {
+    checkPremiumCode(manualTrigger = false) {
       const input = document.getElementById('premium-code');
       const status = document.getElementById('premium-status');
       if (!input || !status) return;
 
-      if (input.value === 'continue') {
+      const isAlreadyPaid = safeStorage.get('bestb4_paid_status', 'false') === 'true';
+      if (input.value === 'continue' || isAlreadyPaid) {
         this.isPaid = true;
         safeStorage.set('bestb4_paid_status', 'true');
         status.innerText = "✅ 有料プランが有効です";
         status.style.color = "#fff";
-        this.showToast('Premium Plan が有効になりました！');
+        input.value = "continue"; 
+        if (manualTrigger && !isAlreadyPaid) this.showToast('Premium Plan が有効になりました！');
       } else {
         this.isPaid = false;
         safeStorage.set('bestb4_paid_status', 'false');
-        status.innerText = "コードが正しくありません";
-        status.style.color = "#fee2e2";
+        if (manualTrigger && input.value) {
+           status.innerText = "コードが正しくありません";
+           status.style.color = "#fee2e2";
+        } else {
+           status.innerText = "";
+        }
       }
     },
 
@@ -848,7 +851,7 @@
         return Array.isArray(data) ? data : [];
       } catch (e) {
         console.error('GAS Storage Error:', e);
-        return [];
+        return null; // Return null to indicate error
       }
     },
 
@@ -865,7 +868,7 @@
         const diff = Math.ceil((new Date(exp) - new Date()) / 86400000);
         if (diff > 7) {
           alert('7日より先の期限を登録するには、有料プラン（月額300円）への加入が必要です。');
-          this.showScreen('payment-screen');
+          this.showScreen('settings-screen');
           return;
         }
       }
@@ -879,7 +882,7 @@
         
         await fetch(this.gasStorageUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' }, 
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         });
         
@@ -919,6 +922,7 @@
       if(id !== 'action-menu') document.getElementById('action-menu').classList.remove('active');
 
       const t = document.getElementById(id);
+      if(!t) return;
       t.style.display = t.classList.contains('main-content-layout') ? 'flex' : 'block';
       
       if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
@@ -926,12 +930,13 @@
       
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       const navIds = {'list-screen':0, 'calendar-screen':1, 'recipe-screen':2, 'settings-screen':3};
+      if(id === 'list-screen') this.renderList();
       if(id === 'calendar-screen') this.renderCalendar();
       if (id === 'recipe-screen') this.renderRecipes();
       if (id === 'settings-screen') {
           this.renderHistory();
           if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
-          this.checkPremiumCode(); // Update premium status display on settings screen
+          this.checkPremiumCode(false); // Update premium status display on settings screen
       }
       if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
     },
@@ -948,7 +953,12 @@
       const sort = document.getElementById('sort-order').value;
       
       const allItems = await this.getAllItems();
-      const activeItems = allItems.filter(i => !i.archivedAt);
+      if (!allItems && this.userEmail) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444; font-size:0.9rem;">データの取得に失敗しました。<br>通信環境またはGASの設定を確認してください。</div>`;
+        return;
+      }
+      const activeItems = (allItems || []).filter(i => !i.archivedAt);
+
       
       const activeCats = ["すべて", ...this.categories.filter(c => activeItems.some(i => i.cat === c))];
       sidebar.innerHTML = "";
@@ -1086,7 +1096,7 @@
       try {
         const resp = await fetch(this.gasStorageUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          mode: 'no-cors',
           body: JSON.stringify({
             action: 'update',
             email: this.userEmail,
@@ -1095,13 +1105,9 @@
           })
         });
 
-        if (resp.ok) {
-          this.showToast('リストに戻しました');
-          this.renderList();
-          this.renderHistory();
-        } else {
-          this.showToast('復元に失敗しました');
-        }
+        this.showToast('リストに戻しました');
+        this.renderList();
+        this.renderHistory();
       } catch (e) {
         console.error('Restore Item Error:', e);
         this.showToast('復元中にエラーが発生しました');
@@ -1115,19 +1121,15 @@
       try {
         const resp = await fetch(this.gasStorageUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          mode: 'no-cors',
           body: JSON.stringify({
             action: 'clearHistory',
             email: this.userEmail
           })
         });
 
-        if (resp.ok) {
-          this.showToast('履歴を削除しました');
-          this.renderHistory();
-        } else {
-          this.showToast('履歴の削除に失敗しました');
-        }
+        this.showToast('履歴を削除しました');
+        this.renderHistory();
       } catch (e) {
         console.error('Clear History Error:', e);
         this.showToast('履歴削除中にエラーが発生しました');

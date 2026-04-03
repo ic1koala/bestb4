@@ -339,41 +339,17 @@
   <div id="settings-screen" class="screen" style="padding:40px 24px 120px; overflow-y:auto;">
     <h2 style="font-weight:800; margin-bottom:24px;">設定</h2>
     
-    <!-- 0. ユーザーアクティベーション (最上部) -->
-    <div class="settings-section" style="margin-bottom:30px; background:#fff; padding:20px; border-radius:24px; border:1px solid #f1f5f9;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">アカウント有効化 (必須)</p>
+    <!-- 0. アカウント設定 (最上部) -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">アカウント設定</p>
       <div id="email-setup-container" style="display:flex; gap:8px;">
-        <input type="email" id="user-email" placeholder="メールアドレスを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
+        <input type="email" id="user-email" placeholder="メールアドレスを入力してください" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
         <button id="email-btn" onclick="app.toggleEmailEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
       </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">スプレッドシートとの同期に使用されます。</p>
+      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
     </div>
 
-    <!-- 1. 有料プラン設定 -->
-    <div class="settings-section" style="margin-bottom:30px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">有料プラン設定</p>
-      <div style="background:linear-gradient(135deg, #10b981, #3b82f6); padding:20px; border-radius:24px; color:#fff; position:relative; overflow:hidden; margin-bottom:16px;">
-        <p style="font-weight:900; font-size:1.1rem; margin-bottom:4px;">Premium Plan</p>
-        <p style="font-size:0.7rem; opacity:0.9;">賞味期限が7日より先のアイテムも<br>AIで自動登録できるようになります。</p>
-        <div style="margin-top:20px; display:flex; gap:8px;">
-          <input type="password" id="premium-code" placeholder="パスワードを入力" style="flex:1; padding:12px; border-radius:12px; border:none; background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; outline:none;">
-          <button onclick="app.checkPremiumCode(true)" style="padding:10px 16px; border-radius:12px; border:none; background:#fff; color:var(--primary); font-weight:800; font-size:0.75rem; cursor:pointer;">適用</button>
-        </div>
-        <p id="premium-status" style="font-size:0.65rem; margin-top:8px; font-weight:800;"></p>
-      </div>
-      <button class="demo-btn" onclick="app.showScreen('payment-screen')" style="border-style:solid; border-color:var(--primary); ">プランの詳細を見る (月額300円)</button>
-    </div>
 
-    <!-- 3. カレンダー連携設定 -->
-    <div class="settings-section" style="margin-bottom:30px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:16px;">カレンダー連携</p>
-      <div style="background:#f0f7ff; padding:20px; border-radius:24px; border:1px solid #dbeafe; margin-bottom:12px;">
-        <p style="font-size:0.7rem; color:#1e40af; line-height:1.6; margin-bottom:12px;">
-          アイテム登録時にカレンダー(.ics)付きメールを自動送信します。スマホのカレンダーに期限をサッと追加できます。
-        </p>
-        <button onclick="app.showToast('カレンダー連携をリクエストしました')" style="width:100%; padding:10px; border-radius:12px; font-weight:800; font-size:0.75rem; background:#fff; border:1px solid #1e40af; color:#1e40af;">連携する</button>
-      </div>
-    </div>
 
     <!-- 4. テスト機能 -->
     <div style="background:#fef2f2; border-radius:24px; padding:20px; border:1.5px dashed #fecaca; margin-bottom:40px;">
@@ -388,7 +364,7 @@
       <button class="demo-btn" style="background:#fff; border-color:#fecaca; color:#ef4444; border-style:solid;" onclick="app.injectDemoData()">デモデータを20件投入</button>
     </div>
 
-    <!-- 5. 使い方ガイド -->
+    <!-- 2. 使い方ガイド -->
     <div class="settings-section" style="margin-bottom:100px; cursor:pointer;" onclick="app.toggleUsage()">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">BestB4 の使い方</p>
@@ -397,20 +373,24 @@
       <div id="usage-content" style="display:none; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:20px;">
         <div style="display:flex; flex-direction:column; gap:16px;">
           <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📧</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>はじめに:</b> 設定画面でメールアドレスを入力・保存してください。このメールアドレスがデータの識別に使われ、入力後は端末に記憶されます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📸</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ搓影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。（AI APIキーの設定が必要）</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">👉</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、ア1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
           </div>
           <div style="display:flex; gap:12px;">
-            <div style="font-size:1.2rem;">📬</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー連携:</b> メールアドレスを登録すると、新しい食品を保存した際にカレンダー登録用メールが届きます。</p>
+            <div style="font-size:1.2rem;">📅</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー:</b> 「カレンダー」タブで、賞味期限が近い食品を日付ごとに一覧表示できます。タップするとアイテムの詳細が表示されます。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">🥗</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」タブにそれを使った救出レシピが提案されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」タブでAIがその食材を使ったレシピをリアルタイムで提案します。</p>
           </div>
         </div>
       </div>
@@ -486,20 +466,7 @@
     </div>
   </div>
 
-  <!-- 10. Payment Screen (Placeholder) -->
-  <div id="payment-screen" class="screen" style="padding:40px 24px; display:none;">
-    <h2 style="font-weight:800; margin-bottom:20px;">有料プラン</h2>
-    <p style="font-size:0.9rem; color:var(--text-muted);">
-      BestB4 Premiumに加入すると、賞味期限が7日より先のアイテムもAIで自動登録できるようになります。
-      月額300円で、より便利に冷蔵庫を管理しましょう！
-    </p>
-    <button onclick="app.showToast('App Store/Google Playで購読')" style="width:100%; padding:16px; border-radius:18px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:1rem; margin-top:30px;">
-      購読する (月額300円)
-    </button>
-    <button onclick="app.showScreen('settings-screen')" style="width:100%; padding:16px; border-radius:18px; border:2px solid #f1f5f9; background:#fff; font-weight:800; color:var(--text-muted); font-size:1rem; margin-top:12px;">
-      設定に戻る
-    </button>
-  </div>
+
 
   <!-- 11. Bottom Nav -->
   <div id="bottom-nav">
@@ -530,8 +497,8 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     apiKey: safeStorage.get('bestb4_gemini_key'),
     userEmail: safeStorage.get('bestb4_user_email'),
-    isPaid: safeStorage.get('bestb4_paid_status', 'false') === 'true',
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbzyiQh78sBO_lhphKneBaWN9dbQbTYgm3Q3Ni3JyduyfXWniSsSyUVDxV8k-u7Lk0xW/exec',
+    apiKey: safeStorage.get('bestb4_gemini_key'),
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -558,7 +525,6 @@
         const keyInput = document.getElementById('gemini-api-key');
         if (keyInput) keyInput.value = '********';
       }
-      this.checkPremiumCode(false);
     },
 
     updateEmailInputState() {
@@ -720,16 +686,29 @@
       } else {
         if (loader) loader.style.display = 'block';
         try {
-          const resp = await fetch(gasUrl);
-          if (!resp.ok) throw new Error('Network response was not ok');
-          recipes = await resp.json();
+          // Gemini APIが設定されていて、かつ期限が近い食材がある場合はAIに直接レシピを生成させる
+          if (this.apiKey && rescueItems.length > 0) {
+            const ingNames = rescueItems.slice(0, 5).map(i => i.name);
+            recipes = await this.generateRecipesWithGemini(ingNames);
+          } else {
+            // APIキーがない、または期限間近の食材がない場合はGASからランダム提案（フォールバック）
+            const resp = await fetch(gasUrl);
+            if (!resp.ok) throw new Error('Network response was not ok');
+            recipes = await resp.json();
+          }
+
+          if (!Array.isArray(recipes) || recipes.length === 0) {
+            throw new Error('レシピデータが空でした');
+          }
+
           safeStorage.set(this.recipeCacheKey, JSON.stringify(recipes));
           safeStorage.set(this.recipeTimestampKey, now.toString());
         } catch (e) {
-          console.error('GAS Fetch Error:', e);
+          console.error('Recipe Fetch/Generate Error:', e);
+          if (loader) loader.style.display = 'none';
           listContainer.innerHTML = `
             <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
-              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">本日の提案は準備中です。<br>手動で食材をチェックしましょう！</p>
+              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">本日の提案は準備中です。<br>（AI APIキーを設定すると、実際の食材からレシピを生成できます！）</p>
             </div>
           `;
           return;
@@ -751,6 +730,33 @@
           <button style="width:100%; padding:10px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px; box-shadow:0 4px 12px rgba(16, 185, 129, 0.1);">レシピを詳しく見る</button>
         </div>
       `).join('');
+    },
+
+    async generateRecipesWithGemini(ingredientsList) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+      const prompt = `以下の賞味期限が近い食材を全て、または一部使って作れる、簡単で美味しいレシピを3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。余計な文字列（Markdownのバッククォートなど）は不要です。\n[{"title": "レシピ名", "url": "https://cookpad.com/search/使用する主な食材の検索用URLエンコード文字列", "ing": "使用する主な食材"}]`;
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      };
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!resp.ok) throw new Error("Gemini API Request Failed");
+      const data = await resp.json();
+      const text = data.candidates[0].content.parts[0].text;
+      
+      try {
+        return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+      } catch (e) {
+        console.error("Gemini JSON Parse Error:", text);
+        throw new Error("AIが正しくない形式で回答しました");
+      }
     },
 
     async consumeItem(id) {
@@ -817,30 +823,6 @@
       }
     },
 
-    checkPremiumCode(manualTrigger = false) {
-      const input = document.getElementById('premium-code');
-      const status = document.getElementById('premium-status');
-      if (!input || !status) return;
-
-      const isAlreadyPaid = safeStorage.get('bestb4_paid_status', 'false') === 'true';
-      if (input.value === 'continue' || isAlreadyPaid) {
-        this.isPaid = true;
-        safeStorage.set('bestb4_paid_status', 'true');
-        status.innerText = "✅ 有料プランが有効です";
-        status.style.color = "#fff";
-        input.value = "continue"; 
-        if (manualTrigger && !isAlreadyPaid) this.showToast('Premium Plan が有効になりました！');
-      } else {
-        this.isPaid = false;
-        safeStorage.set('bestb4_paid_status', 'false');
-        if (manualTrigger && input.value) {
-           status.innerText = "コードが正しくありません";
-           status.style.color = "#fee2e2";
-        } else {
-           status.innerText = "";
-        }
-      }
-    },
 
     async getAllItems() {
       if (!this.userEmail) return [];
@@ -848,7 +830,8 @@
         const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}`;
         const resp = await fetch(url, { redirect: 'follow' });
         if (!resp.ok) {
-           console.error('GAS Storage Error - Status:', resp.status);
+           this.lastError = `HTTP ${resp.status}: ${resp.statusText || 'サーバーエラー'}`;
+           console.error('GAS Storage Error:', this.lastError);
            return null;
         }
         const data = await resp.json();
@@ -868,15 +851,6 @@
 
       if (!name || !exp) return this.showToast('入力が足りません');
       if (!this.userEmail) return this.showToast('アカウント設定（メール）を完了してください');
-
-      if (!this.isPaid) {
-        const diff = Math.ceil((new Date(exp) - new Date()) / 86400000);
-        if (diff > 7) {
-          alert('7日より先の期限を登録するには、有料プラン（月額300円）への加入が必要です。');
-          this.showScreen('settings-screen');
-          return;
-        }
-      }
 
       const saveBtn = document.querySelector('#entry-overlay button');
       if (saveBtn) { saveBtn.disabled = true; saveBtn.innerText = '保存中...'; }
@@ -1475,13 +1449,6 @@
       const name = res.name || "商品";
       const exp = res.exp || new Date().toISOString().split('T')[0];
       
-      if (!this.isPaid) {
-        const diff = Math.ceil((new Date(exp) - new Date()) / 86400000);
-        if (diff > 7) {
-          this.showToast(`AI解析：${name}は7日以上先のため保存をスキップしました`);
-          return;
-        }
-      }
 
       try {
         await fetch(this.gasStorageUrl, {

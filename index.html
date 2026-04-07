@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>BestB4 - 賞味期限管理</title>
-  <link rel="icon" type="image/png" href="icon_bestb4.png">
-  <link rel="apple-touch-icon" href="icon_bestb4.png">
+  <title>BestB4 | 賞味期限管理</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#10b981">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -346,11 +348,45 @@
         <input type="email" id="user-email" placeholder="メールアドレスを入力してください" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
         <button id="email-btn" onclick="app.toggleEmailEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
       </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">リマインド通知設定</p>
+      <div style="display:flex; gap:6px; align-items:center; background:#fff; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">期限</span>
+        <select id="reminder-days" style="padding:4px; border-radius:8px; border:1px solid #cbd5e1; font-weight:700; outline:none;">
+          <option value="1">1日</option>
+          <option value="2">2日</option>
+          <option value="3">3日</option>
+          <option value="7">7日</option>
+        </select>
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">前の</span>
+        <input type="time" id="reminder-time" value="09:00" style="padding:4px 8px; border-radius:8px; border:1px solid #cbd5e1; outline:none; font-family:inherit; font-weight:700;">
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">に通知</span>
+        <button onclick="app.saveReminderSetting()" style="margin-left:auto; padding:6px 12px; border-radius:8px; border:none; background:var(--primary); color:#fff; font-size:0.7rem; font-weight:800;">保存</button>
+      </div>
+      <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※設定条件に合わせて食材をポップアップまたはメールでお知らせします。</p>
+    </div>
+
+    <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
+
     </div>
     <!-- 設定 UI は削除されました (URLとキーはソースまたはストレージで管理) -->
 
     <!-- 2. 使い方ガイド -->
+
+    <!-- 1. 通知設定 -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">スマホ通知設定</p>
+      <div style="background:#f8fafc; border-radius:20px; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:800; font-size:0.9rem;">通知を許可する</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">期限1〜2日前のリマインダーを表示します</div>
+        </div>
+        <button id="notify-perm-btn" onclick="app.requestNotificationPermission()" style="background:var(--primary); color:#fff; border:none; padding:8px 16px; border-radius:12px; font-weight:800; font-size:0.75rem; cursor:pointer;">許可する</button>
+      </div>
+      <div style="margin-top:12px; font-size:0.65rem; color:var(--text-muted); line-height:1.4;">
+        ※ iPhone/iPadは「ホーム画面に追加」してから設定してください。
+      </div>
+    </div>
 
     <!-- 2. 使い方ガイド -->
     <div class="settings-section" style="margin-bottom:100px; cursor:pointer;" onclick="app.toggleUsage()">
@@ -366,11 +402,11 @@
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📸</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ搓影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。（AI APIキーの設定が必要）</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">👉</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、ア1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📅</div>
@@ -378,7 +414,11 @@
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">🥗</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」タブでAIがその食材を使ったレシピをリアルタイムで提案します。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」画面右上の「更新🔄」ボタンを押すことでAIが最新レシピを提案します。</p>
+          </div>
+          <div style="display:flex; gap:12px; background:#f0fdf4; padding:12px; border-radius:12px; border:1px solid #dcfce7;">
+            <div style="font-size:1.2rem;">📱</div>
+            <p style="font-size:0.75rem; color:#166534; line-height:1.5;"><b>通知を有効にするには:</b> iOSの方はSafariで開き、<b>「共有ボタン（矢印）」</b>から<b>「ホーム画面に追加」</b>を行ってください。本物のアプリとして動作し、通知が受け取れるようになります。</p>
           </div>
         </div>
       </div>
@@ -483,15 +523,24 @@
 
   const app = {
     db: null, stream: null, editingId: null, currentCat: "すべて",
+    _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: safeStorage.get('bestb4_gas_url', 'https://script.google.com/macros/s/AKfycbyNdclSHGgW5RugT5R0hQDbO5Wjc76iIF95uqcEgulPr6b3WafcccT5xRg1yo9mElk/exec'),
-    // APIキーはGAS側(サーバー)で管理するため、ブラウザ側の定義は不要になりました
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbySfznX50kKB9CKMo07RASi-VP_cyIdZ1BgnPecdL1b41xzbUFG7fL7CL9G2GcuC6Zx/exec',
+    // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
+      // 1. Service Worker登録 (PWA用)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      }
+      
       this.updateEmailInputState();
-      // 他の連携設定は内部ストレージまたはソースコードで管理されます
+      this.updateNotifyBtnState();
+      this.updateDateLabel();
+      this.renderList();
+      
       console.log('BestB4 Initialized');
       const splash = document.getElementById('splash-screen');
       if (splash) {
@@ -505,15 +554,36 @@
             setTimeout(() => splash.style.display = 'none', 1000);
             this.checkReminders();
           }, 1000);
-        }, 4200);
+        }, 800);
       }
-      this.updateDateLabel();
-      this.renderList();
-      if(this.apiKey) {
-        const keyInput = document.getElementById('gemini-api-key');
-        if (keyInput) keyInput.value = '********';
+      
+      // リマインド設定の読み込み
+      const savedTime = safeStorage.get('bestb4_reminder_time', '09:00');
+      const savedDays = safeStorage.get('bestb4_reminder_days', '2');
+      if (document.getElementById('reminder-time')) document.getElementById('reminder-time').value = savedTime;
+      if (document.getElementById('reminder-days')) document.getElementById('reminder-days').value = savedDays;
+    },
+
+    updateNotifyBtnState() {
+      const btn = document.getElementById('notify-perm-btn');
+      if (btn && Notification.permission === 'granted') {
+        btn.innerText = '設定済み ✅';
+        btn.style.background = '#f1f5f9';
+        btn.style.color = '#64748b';
+        btn.disabled = true;
       }
     },
+
+    async requestNotificationPermission() {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        this.showToast('通知が許可されました！');
+        this.updateNotifyBtnState();
+      } else {
+        this.showToast('通知が拒否されました（ブラウザ設定を確認してください）');
+      }
+    },
+
 
     updateEmailInputState() {
       const input = document.getElementById('user-email');
@@ -593,11 +663,29 @@
         'END:VCALENDAR'
       ].join('\n');
       
-      // 擬似送信フローのシミュレーション（本来はここでサーバーAPIへ送信）
+      // 擬似送信フローのシミュレーション
       setTimeout(() => {
         this.showToast('✅ メールを送信しました！カレンダーに追加してください');
-        console.log("Mock ICS Content:\n", icsData);
       }, 1500);
+    },
+
+    saveReminderSetting() {
+      const timeInput = document.getElementById('reminder-time');
+      const daysInput = document.getElementById('reminder-days');
+      if (!timeInput || !daysInput) return;
+      
+      const time = timeInput.value;
+      const days = daysInput.value;
+      
+      safeStorage.set('bestb4_reminder_time', time);
+      safeStorage.set('bestb4_reminder_days', days);
+      
+      this.showToast(`✅ ${days}日前の ${time} に通知を予約しました`);
+      
+      // 注意書き
+      setTimeout(() => {
+        alert("【重要：メール通知】メール通知を有効にするには、GASエディタで 'dailyReminder' 関数を毎日実行するトリガーを設定してください。");
+      }, 500);
     },
 
     async renderRecipes(forceUpdate = false) {
@@ -642,38 +730,44 @@
       
       if (!forceUpdate && cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
         recipes = JSON.parse(cache);
-      } else {
+      } else if (forceUpdate) {
         if (loader) loader.style.display = 'block';
         try {
-          // GASのプロキシ機能を使ってAIレシピを生成（APIキーをブラウザ側で見せない構成）
+          // GASプロキシ経由。AI生成は手動ボタンのみ。
           if (rescueItems.length > 0) {
             const ingNames = rescueItems.slice(0, 5).map(i => i.name);
             recipes = await this.generateRecipesWithGemini(ingNames);
           } else {
-            // 期限間近の食材がない場合のデフォルト提案
+            // 食材がない場合のバックアップ
             recipes = [
-              { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜" },
-              { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉" },
-              { title: "彩り野菜の肉野菜炒め", url: "https://cookpad.com/search/野菜炒め", ing: "キャベツ、人参、豚肉" },
-              { title: "とろ〜り卵の納豆チャーハン", url: "https://cookpad.com/search/納豆チャーハン", ing: "納豆、卵、ごはん" },
-              { title: "簡単！鮭のムニエル", url: "https://cookpad.com/search/鮭 ムニエル", ing: "鮭、バター" }
+              { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜", source: "定番", desc: "何にでも合う万能味噌汁" },
+              { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉", source: "定番", desc: "スタミナ満点メニュー" },
+              { title: "彩り野菜の肉野菜炒め", url: "https://cookpad.com/search/野菜炒め", ing: "キャベツ、人参、豚肉", source: "定番", desc: "冷蔵庫掃除の決定版" }
             ];
           }
 
           if (!Array.isArray(recipes) || recipes.length === 0) throw new Error('レシピデータが空でした');
-
           safeStorage.set(this.recipeCacheKey, JSON.stringify(recipes));
           safeStorage.set(this.recipeTimestampKey, now.toString());
         } catch (e) {
-          console.error('Recipe Fetch/Generate Error:', e);
+          console.error('AI Fetch Error:', e);
           if (loader) loader.style.display = 'none';
           listContainer.innerHTML = `
             <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
-              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">本日の提案は準備中です。<br>（AI APIキーを設定すると、実際の食材からレシピを生成できます！）</p>
+              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">更新エラーが発生しました。時間を置いて右上の（🔄）をクリックしてください。</p>
             </div>
           `;
           return;
         }
+      } else {
+        // キャッシュなしの初期状態
+        if (loader) loader.style.display = 'none';
+        listContainer.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
+            <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">定時更新のお知らせ、もしくはマニュアルで更新する場合は右上（🔄）をクリックしてください。</p>
+          </div>
+        `;
+        return;
       }
 
       // 3. レシピカードの描画
@@ -722,43 +816,48 @@
     async consumeItem(id) {
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
 
-      const allItems = await this.getAllItems();
-      const item = allItems.find(i => i.id === id);
+      // 1. 【楽観的更新】即座にキャッシュを更新してUIに反映
+      const cachedItems = await this.getAllItems(true); // キャッシュ優先取得
+      const idx = cachedItems.findIndex(i => i.id === id);
+      if (idx === -1) return;
 
-      if (item) {
-        let newQty = item.qty;
-        let archived = item.archivedAt;
-        let toastMsg = '';
+      const item = cachedItems[idx];
+      let newQty = item.qty;
+      let archived = item.archivedAt;
+      let toastMsg = '';
 
-        if (item.qty > 1) {
-          newQty -= 1;
-          toastMsg = `1つ消費しました（残り${newQty}個）`;
-        } else {
-          archived = new Date().toISOString();
-          toastMsg = '使い切りました！';
-        }
+      if (item.qty > 1) {
+        cachedItems[idx].qty -= 1;
+        newQty -= 1;
+        toastMsg = `1つ消費しました（残り${newQty}個）`;
+      } else {
+        cachedItems[idx].archivedAt = new Date().toISOString();
+        archived = cachedItems[idx].archivedAt;
+        toastMsg = '使い切りました！';
+      }
 
-        try {
-          const resp = await fetch(this.gasStorageUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-              action: 'update',
-              email: this.userEmail,
-              id: item.id,
-              qty: newQty,
-              archivedAt: archived
-            })
-          });
+      // UIを即座に再描画（爆速化）
+      this.renderList();
+      this.renderCalendar();
+      this.showToast(toastMsg);
 
-          this.showToast(toastMsg);
-          this.renderList();
-          this.renderCalendar();
-          this.renderHistory();
-        } catch (e) {
-          console.error('Consume Item Error:', e);
-          this.showToast('消費中にエラーが発生しました');
-        }
+      // 2. 【バックグラウンド同期】GAS側のデータを更新
+      try {
+        fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'update',
+            email: this.userEmail,
+            id: item.id,
+            qty: newQty,
+            archivedAt: archived
+          })
+        });
+        // 履歴も最新化
+        setTimeout(() => this.renderHistory(), 1000);
+      } catch (e) {
+        console.error('GAS Background Sync Error:', e);
       }
     },
 
@@ -770,35 +869,25 @@
       arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
     },
 
-    saveApiKey() {
-      const key = document.getElementById('gemini-api-key').value;
-      if (key && key !== '********') {
-        this.apiKey = key;
-        localStorage.setItem('bestb4_gemini_key', key);
-        this.showToast('APIキーを保存しました');
-      } else if (!key) {
-        this.apiKey = '';
-        localStorage.removeItem('bestb4_gemini_key');
-        this.showToast('APIキーを削除しました');
-      }
-    },
+    // APIキー管理メソッドは削除されました
 
 
-    async getAllItems() {
+
+    async getAllItems(useCache = false) {
       if (!this.userEmail) return [];
+      // キャッシュ利用フラグがあり、かつデータが存在する場合は即時返却（爆速化）
+      if (useCache && this._itemsCache) return this._itemsCache;
+
       try {
         const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}`;
         const resp = await fetch(url, { redirect: 'follow' });
-        if (!resp.ok) {
-           this.lastError = `HTTP ${resp.status}: ${resp.statusText || 'サーバーエラー'}`;
-           console.error('GAS Storage Error:', this.lastError);
-           return null;
-        }
+        if (!resp.ok) return null;
         const data = await resp.json();
-        return Array.isArray(data) ? data : [];
+        const items = Array.isArray(data) ? data : [];
+        this._itemsCache = items; // キャッシュを更新
+        return items;
       } catch (e) {
         console.error('GAS Connection Error:', e);
-        this.lastError = e.message; // Capture to show in UI
         return null;
       }
     },
@@ -1089,28 +1178,58 @@
 
     async renderCalendar() {
         const container = document.getElementById('calendar-container');
-        container.innerHTML = "";
+        if (!container) return;
+
+        // 1. 【ベース読み込み】まず現在のキャッシュを使って枠組みを秒速描画
+        this.renderCalendarGrid(this._itemsCache || []);
+
+        // 2. 【追加の反映】最新データを取得してバッジのみを更新
         const allItems = await this.getAllItems();
+        if (allItems) {
+          this.updateCalendarBadges(allItems);
+        }
+    },
+
+    updateCalendarBadges(allItems) {
+      const activeItems = allItems.filter(i => !i.archivedAt);
+      const cells = document.querySelectorAll('.cal-cell');
+      
+      cells.forEach(cell => {
+        const dateStr = cell.dataset.date;
+        if (!dateStr) return;
+        
+        // 既存のバッジを消去
+        const oldBadge = cell.querySelector('.cal-badge');
+        if (oldBadge) oldBadge.remove();
+
+        const expiring = activeItems.filter(item => this.formatDateForInput(item.exp) === dateStr);
+        if (expiring.length > 0) {
+          const badge = document.createElement('div');
+          badge.className = 'cal-badge';
+          badge.innerText = expiring.length;
+          cell.appendChild(badge);
+          cell.onclick = () => this.showCalendarDetails(dateStr, expiring);
+        }
+      });
+    },
+
+    renderCalendarGrid(allItems) {
+        const container = document.getElementById('calendar-container');
+        container.innerHTML = "";
         const activeItems = allItems.filter(i => !i.archivedAt);
         const now = new Date();
         
-        // 前1ヶ月から後12ヶ月分を表示
         for (let m = -1; m <= 12; m++) {
             const calDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
             const year = calDate.getFullYear();
             const month = calDate.getMonth();
-            
-            // 月ヘッダー
             const header = document.createElement('div');
             header.className = 'cal-header';
             header.innerHTML = `<h3>${year}年${month + 1}月</h3>`;
             container.appendChild(header);
 
-            // グリッド
             const grid = document.createElement('div');
             grid.className = 'calendar-grid';
-            
-            // 曜日ラベル
             ["日","月","火","水","木","金","土"].forEach(d => {
                 const el = document.createElement('div'); el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el);
             });
@@ -1125,6 +1244,7 @@
                 if (dayNum > 0 && dayNum <= daysInMonth) {
                     cell.innerText = dayNum;
                     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+                    cell.dataset.date = dateStr; // データ属性に日付を保持
                     if (dateStr === this.formatDateForInput(new Date().toISOString())) cell.classList.add('today');
                     
                     const expiring = activeItems.filter(item => this.formatDateForInput(item.exp) === dateStr);
@@ -1139,7 +1259,6 @@
                     cell.classList.add('other-month');
                 }
                 grid.appendChild(cell);
-                // 次の月の行に入ったら終了（グリッドの端まで埋める）
                 if (dayNum > daysInMonth && i % 7 === 0) break;
             }
             container.appendChild(grid);
@@ -1547,9 +1666,35 @@
 
     async checkReminders() {
       const items = (await this.getAllItems()).filter(i => !i.archivedAt);
-      const near = items.filter(i => (Math.ceil((new Date(i.exp) - new Date()) / 86400000)) <= 7);
-      if(near.length > 0) this.showToast(`🔔 ${near.length}件の期限が近づいています`);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      const thresholdDays = parseInt(safeStorage.get('bestb4_reminder_days', '2'));
+      
+      const near = items.filter(i => {
+        const diff = Math.ceil((new Date(i.exp) - today) / 86400000);
+        return diff >= 0 && diff <= thresholdDays; // 設定された日数以内
+      });
+
+      if (near.length > 0) {
+        const msg = `${near.length}件の期限が迫っています（${near[0].name}など）`;
+        this.showToast(`🔔 ${msg}`);
+        
+        // システム通知 (PWA通知)
+        if (Notification.permission === 'granted') {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification('BestB4 リマインダー', {
+              body: msg,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png',
+              badge: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png',
+              tag: 'exp-reminder'
+            });
+          });
+        }
+      }
     },
+
+
 
     showToast(m) { 
       const t = document.getElementById('toast'); 

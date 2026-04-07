@@ -774,26 +774,35 @@
       // 3. レシピカードの描画
       if (loader) loader.style.display = 'none';
       listContainer.innerHTML = recipes.slice(0, 5).map(r => `
-        <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:20px; border-radius:24px; display:flex; flex-direction:column; gap:12px; cursor:pointer; background:rgba(255,255,255,0.6);">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="font-weight:900; font-size:1.1rem; color:#1e293b; flex:1; line-height:1.3;">${r.title}</div>
-            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">約15分</div>
+        <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:24px; border-radius:28px; display:flex; flex-direction:column; gap:14px; cursor:pointer; background:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.6rem; font-weight:900; background:var(--primary); color:#fff; padding:4px 10px; border-radius:30px; letter-spacing:0.05em;">${r.source || 'ネット検索結果'}</span>
+            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">調理15分</div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted);">本日のメイン食材:</span>
+          <div>
+            <div style="font-weight:900; font-size:1.15rem; color:#1e293b; margin-bottom:6px; line-height:1.2;">${r.title}</div>
+            <p style="font-size:0.7rem; color:#64748b; line-height:1.5; margin:0;">${r.desc || '食材を活かしたおすすめのレシピです。'}</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.5); padding:10px; border-radius:16px; border:1px solid #f1f5f9;">
+            <span style="font-size:0.65rem; font-weight:850; color:#10b981;">💡 メイン:</span>
             <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.ing}</span>
           </div>
-          <button style="width:100%; padding:10px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px; box-shadow:0 4px 12px rgba(16, 185, 129, 0.1);">レシピを詳しく見る</button>
+          <button style="width:100%; padding:12px; border-radius:16px; border:none; background:#1e293b; color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px;">レシピの詳細をチェック ➔</button>
         </div>
       `).join('');
     },
 
     async generateRecipesWithGemini(ingredientsList) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
-      const prompt = `以下の賞味期限が近い食材を全て、または一部使って作れる、簡単で美味しいレシピを3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。urlにはCookpadの各レシピ検索結果ページへのURLを入れてください。\n[{"title": "レシピ名", "url": "https://cookpad.com/search/...", "ing": "使用する主な食材"}]`;
+      const prompt = `あなたはプロの料理研究家です。以下の食材をベースに「今すぐネットで人気のレシピ」を検索・整理し、3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。\n[{\n  "title": "料理名", \n  "desc": "検索結果に基づいた料理の短い要約（例：〇〇で話題の時短レシピ）", \n  "source": "検索ソース（例：Cookpad, Rakuten, Google等）", \n  "url": "https://cookpad.com/search/またはGoogle検索URL", \n  "ing": "活用する食材"\n}]`;
 
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
+        tools: [{
+          google_search_retrieval: {
+             dynamic_retrieval_config: { mode: "MODE_DYNAMIC", dynamic_threshold: 0.3 }
+          }
+        }],
         generationConfig: { responseMimeType: "application/json" }
       };
 
@@ -805,6 +814,8 @@
       
       if (!resp.ok) throw new Error("Gemini API Request Failed");
       const data = await resp.json();
+      
+      // Grounding metadata is available but for now we extract text
       const text = data.candidates[0].content.parts[0].text;
       
       try {

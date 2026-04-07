@@ -348,8 +348,15 @@
       </div>
       <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
     </div>
-
-
+    <!-- 0.5 GAS連携設定 (追加) -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">GAS連携設定 (必須)</p>
+      <div id="gas-setup-container" style="display:flex; gap:8px;">
+        <input type="text" id="gas-url" placeholder="GASのウェブアプリURLを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.85rem; font-weight:600;">
+        <button id="gas-btn" onclick="app.toggleGasUrlEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
+      </div>
+      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">デプロイされたGASのURLを入力してください。</p>
+    </div>
 
     <!-- 4. テスト機能 -->
     <div style="background:#fef2f2; border-radius:24px; padding:20px; border:1.5px dashed #fecaca; margin-bottom:40px;">
@@ -372,9 +379,15 @@
       </div>
       <div id="usage-content" style="display:none; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:20px;">
         <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px; background:#f0f9ff; padding:12px; border-radius:16px;">
+            <div style="font-size:1.2rem;">🛠️</div>
+            <p style="font-size:0.7rem; color:#0369a1; line-height:1.5;">
+              <b>GASのセットアップ:</b> 自分のスプレッドシートを使うには、GASを「ウェブアプリ」としてデプロイし、アクセス権を「全員(Anyone)」に設定してからURLを上に保存してください。
+            </p>
+          </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📧</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>はじめに:</b> 設定画面でメールアドレスを入力・保存してください。このメールアドレスがデータの識別に使われ、入力後は端末に記憶されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント:</b> 設定画面でメールアドレスを入力・保存してください。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📸</div>
@@ -497,13 +510,13 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     apiKey: safeStorage.get('bestb4_gemini_key'),
     userEmail: safeStorage.get('bestb4_user_email'),
-    apiKey: safeStorage.get('bestb4_gemini_key'),
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec',
+    gasStorageUrl: safeStorage.get('bestb4_gas_url', 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec'),
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
       this.updateEmailInputState();
+      this.updateGasUrlInputState();
       this.updateApiKeyInputState();
       const splash = document.getElementById('splash-screen');
       if (splash) {
@@ -577,19 +590,56 @@
       if (!input || !btn) return;
 
       if (this.apiKey) {
-        input.value = '********';
-        input.disabled = true;
-        input.style.background = "#f1f5f9";
         btn.innerText = "変更";
         btn.style.background = "#94a3b8";
       } else {
-        input.value = '';
         input.disabled = false;
         input.style.background = "#fff";
         btn.innerText = "保存";
         btn.style.background = "#ef4444";
       }
     },
+
+    updateGasUrlInputState() {
+      const input = document.getElementById('gas-url');
+      const btn = document.getElementById('gas-btn');
+      if (!input || !btn) return;
+      if (this.gasStorageUrl && !this.gasStorageUrl.includes('AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec')) {
+        input.value = '********';
+        input.disabled = true;
+        input.style.background = "#f1f5f9";
+        btn.innerText = "変更";
+        btn.style.background = "#94a3b8";
+      } else {
+        input.disabled = false;
+        input.style.background = "#fff";
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+      }
+    },
+
+    toggleGasUrlEdit() {
+      const input = document.getElementById('gas-url');
+      const btn = document.getElementById('gas-btn');
+      if (input.disabled) {
+        input.disabled = false;
+        input.style.background = "#fff";
+        input.value = this.gasStorageUrl;
+        input.focus();
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+      } else {
+        const val = input.value.trim();
+        if (!val) return this.showToast('GASのURLを入力してください');
+        if (!val.startsWith('https://script.google.com')) return this.showToast('正しいGASのURLを入力してください');
+        this.gasStorageUrl = val;
+        safeStorage.set('bestb4_gas_url', val);
+        this.updateGasUrlInputState();
+        this.renderList();
+        this.showToast('GAS連携を保存しました');
+      }
+    },
+
 
     toggleApiKeyEdit() {
       const input = document.getElementById('gemini-api-key');

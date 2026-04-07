@@ -348,28 +348,9 @@
       </div>
       <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
     </div>
-    <!-- 0.5 GAS連携設定 (追加) -->
-    <div class="settings-section" style="margin-bottom:30px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">GAS連携設定 (必須)</p>
-      <div id="gas-setup-container" style="display:flex; gap:8px;">
-        <input type="text" id="gas-url" placeholder="GASのウェブアプリURLを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.85rem; font-weight:600;">
-        <button id="gas-btn" onclick="app.toggleGasUrlEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
-      </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">デプロイされたGASのURLを入力してください。</p>
-    </div>
+    <!-- 設定 UI は削除されました (URLとキーはソースまたはストレージで管理) -->
 
-    <!-- 4. テスト機能 -->
-    <div style="background:#fef2f2; border-radius:24px; padding:20px; border:1.5px dashed #fecaca; margin-bottom:40px;">
-      <p style="font-size:0.8rem; font-weight:800; color:#ef4444; margin-bottom:16px;">テスト用機能</p>
-      <div style="margin-bottom:20px;">
-        <p style="font-size:0.7rem; font-weight:800; color:#b91c1c; margin-bottom:8px;">AI設定 (Gemini API)</p>
-        <div id="api-setup-container" style="display:flex; gap:8px;">
-          <input type="password" id="gemini-api-key" placeholder="APIキーを入力" style="flex:1; padding:12px; border-radius:12px; border:1px solid #fee2e2; outline:none; font-size:0.85rem; background:#fff;">
-          <button id="api-btn" onclick="app.toggleApiKeyEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:#ef4444; color:#fff; font-weight:800; font-size:0.75rem;">保存</button>
-        </div>
-      </div>
-      <button class="demo-btn" style="background:#fff; border-color:#fecaca; color:#ef4444; border-style:solid;" onclick="app.injectDemoData()">デモデータを20件投入</button>
-    </div>
+    <!-- 2. 使い方ガイド -->
 
     <!-- 2. 使い方ガイド -->
     <div class="settings-section" style="margin-bottom:100px; cursor:pointer;" onclick="app.toggleUsage()">
@@ -379,15 +360,9 @@
       </div>
       <div id="usage-content" style="display:none; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:20px;">
         <div style="display:flex; flex-direction:column; gap:16px;">
-          <div style="display:flex; gap:12px; background:#f0f9ff; padding:12px; border-radius:16px;">
-            <div style="font-size:1.2rem;">🛠️</div>
-            <p style="font-size:0.7rem; color:#0369a1; line-height:1.5;">
-              <b>GASのセットアップ:</b> 自分のスプレッドシートを使うには、GASを「ウェブアプリ」としてデプロイし、アクセス権を「全員(Anyone)」に設定してからURLを上に保存してください。
-            </p>
-          </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📧</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント:</b> 設定画面でメールアドレスを入力・保存してください。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント:</b> 設定画面でメールアドレスを入力してください。全てのデータはこのアドレスに紐づいて管理されます。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📸</div>
@@ -508,16 +483,16 @@
 
   const app = {
     db: null, stream: null, editingId: null, currentCat: "すべて",
-    apiKey: safeStorage.get('bestb4_gemini_key'),
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: safeStorage.get('bestb4_gas_url', 'https://script.google.com/macros/s/AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec'),
+    gasStorageUrl: safeStorage.get('bestb4_gas_url', 'https://script.google.com/macros/s/AKfycbyNdclSHGgW5RugT5R0hQDbO5Wjc76iIF95uqcEgulPr6b3WafcccT5xRg1yo9mElk/exec'),
+    // APIキーはGAS側(サーバー)で管理するため、ブラウザ側の定義は不要になりました
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
       this.updateEmailInputState();
-      this.updateGasUrlInputState();
-      this.updateApiKeyInputState();
+      // 他の連携設定は内部ストレージまたはソースコードで管理されます
+      console.log('BestB4 Initialized');
       const splash = document.getElementById('splash-screen');
       if (splash) {
         setTimeout(() => {
@@ -584,82 +559,11 @@
       }
     },
 
-    updateApiKeyInputState() {
-      const input = document.getElementById('gemini-api-key');
-      const btn = document.getElementById('api-btn');
-      if (!input || !btn) return;
-
-      if (this.apiKey) {
-        btn.innerText = "変更";
-        btn.style.background = "#94a3b8";
-      } else {
-        input.disabled = false;
-        input.style.background = "#fff";
-        btn.innerText = "保存";
-        btn.style.background = "#ef4444";
-      }
-    },
-
-    updateGasUrlInputState() {
-      const input = document.getElementById('gas-url');
-      const btn = document.getElementById('gas-btn');
-      if (!input || !btn) return;
-      if (this.gasStorageUrl && !this.gasStorageUrl.includes('AKfycbxk0DzISLRJ4nhCGKZbvxI5r97VEtVVyopZJRA2alRf5IrQVEWBygFUmMVdPrJgu74RDg/exec')) {
-        input.value = '********';
-        input.disabled = true;
-        input.style.background = "#f1f5f9";
-        btn.innerText = "変更";
-        btn.style.background = "#94a3b8";
-      } else {
-        input.disabled = false;
-        input.style.background = "#fff";
-        btn.innerText = "保存";
-        btn.style.background = "var(--primary)";
-      }
-    },
-
-    toggleGasUrlEdit() {
-      const input = document.getElementById('gas-url');
-      const btn = document.getElementById('gas-btn');
-      if (input.disabled) {
-        input.disabled = false;
-        input.style.background = "#fff";
-        input.value = this.gasStorageUrl;
-        input.focus();
-        btn.innerText = "保存";
-        btn.style.background = "var(--primary)";
-      } else {
-        const val = input.value.trim();
-        if (!val) return this.showToast('GASのURLを入力してください');
-        if (!val.startsWith('https://script.google.com')) return this.showToast('正しいGASのURLを入力してください');
-        this.gasStorageUrl = val;
-        safeStorage.set('bestb4_gas_url', val);
-        this.updateGasUrlInputState();
-        this.renderList();
-        this.showToast('GAS連携を保存しました');
-      }
-    },
 
 
-    toggleApiKeyEdit() {
-      const input = document.getElementById('gemini-api-key');
-      const btn = document.getElementById('api-btn');
-      if (input.disabled) {
-        input.disabled = false;
-        input.value = '';
-        input.style.background = "#fff";
-        input.focus();
-        btn.innerText = "保存";
-        btn.style.background = "#ef4444";
-      } else {
-        const val = input.value.trim();
-        if (!val) return this.showToast('APIキーを入力してください');
-        this.apiKey = val;
-        safeStorage.set('bestb4_gemini_key', val);
-        this.updateApiKeyInputState();
-        this.showToast('APIキーを保存しました');
-      }
-    },
+    // 連携設定の編集メソッドはセキュリティーとUI簡略化のため削除されました
+    // 必要に応じて localStorage (safeStorage) またはソースコードで直接書き換えてください
+
 
     updateLinkStatus() {
       const badge = document.getElementById('mail-status-badge');
@@ -741,11 +645,12 @@
       } else {
         if (loader) loader.style.display = 'block';
         try {
-          if (this.apiKey && rescueItems.length > 0) {
+          // GASのプロキシ機能を使ってAIレシピを生成（APIキーをブラウザ側で見せない構成）
+          if (rescueItems.length > 0) {
             const ingNames = rescueItems.slice(0, 5).map(i => i.name);
             recipes = await this.generateRecipesWithGemini(ingNames);
           } else {
-            // AIキーがない、または期限間近の食材がない場合
+            // 期限間近の食材がない場合のデフォルト提案
             recipes = [
               { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜" },
               { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉" },
@@ -793,35 +698,22 @@
     },
 
     async generateRecipesWithGemini(ingredientsList) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
-      const prompt = `あなたはプロの料理研究家です。以下の食材をベースに「今すぐネットで人気のレシピ」を検索・整理し、3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。\n[{\n  "title": "料理名", \n  "desc": "検索結果に基づいた料理の短い要約（例：〇〇で話題の時短レシピ）", \n  "source": "検索ソース（例：Cookpad, Rakuten, Google等）", \n  "url": "https://cookpad.com/search/またはGoogle検索URL", \n  "ing": "活用する食材"\n}]`;
-
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        tools: [{
-          google_search_retrieval: {
-             dynamic_retrieval_config: { mode: "MODE_DYNAMIC", dynamic_threshold: 0.3 }
-          }
-        }],
-        generationConfig: { responseMimeType: "application/json" }
-      };
-
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      // GASの公開URLに対してAIレシピのリクエストを送ります（APIキーはGAS側に隠蔽されています）
+      const url = `${this.gasStorageUrl}?action=getRecipes&ingredients=${encodeURIComponent(ingredientsList.join("、"))}`;
       
-      if (!resp.ok) throw new Error("Gemini API Request Failed");
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("GAS API Proxy Request Failed");
+      
       const data = await resp.json();
+      if (data.error) throw new Error(data.error);
       
-      // Grounding metadata is available but for now we extract text
+      // GASから返ってきたGeminiのレスポンスからテキストを抽出
       const text = data.candidates[0].content.parts[0].text;
       
       try {
         return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
       } catch (e) {
-        console.error("Gemini JSON Parse Error:", text);
+        console.error("GAS Proxy JSON Parse Error:", text);
         throw new Error("AIが正しくない形式で回答しました");
       }
     },

@@ -701,9 +701,16 @@
       const loader = document.getElementById('recipe-loader');
       const listContainer = document.getElementById('recipe-list');
       const ingredientsContainer = document.getElementById('recipe-ingredients');
+      if (!listContainer || !ingredientsContainer) return;
       
       // 1. 食材バッジの描画（期限3日以内）
       const items = await this.getAllItems();
+      if (!items) {
+        if (loader) loader.style.display = 'none';
+        listContainer.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted);">同期エラーによりアイテムを取得できませんでした</p>';
+        return;
+      }
+
       const today = new Date();
       const threeDaysLater = new Date();
       threeDaysLater.setDate(today.getDate() + 3);
@@ -723,10 +730,8 @@
         `).join('');
       }
 
-      // 2. レシピデータの取得（キャッシュ or GAS）
-      const gasUrl = "https://script.google.com/macros/s/AKfycbzyiQh78sBO_lhphKneBaWN9dbQbTYgm3Q3Ni3JyduyfXWniSsSyUVDxV8k-u7Lk0xW/exec";
+      // 2. レシピデータの取得（キャッシュ or AI）
       let recipes = [];
-      
       const cache = safeStorage.get(this.recipeCacheKey);
       const ts = safeStorage.get(this.recipeTimestampKey);
       const now = new Date().getTime();
@@ -736,20 +741,21 @@
       } else {
         if (loader) loader.style.display = 'block';
         try {
-          // Gemini APIが設定されていて、かつ期限が近い食材がある場合はAIに直接レシピを生成させる
           if (this.apiKey && rescueItems.length > 0) {
             const ingNames = rescueItems.slice(0, 5).map(i => i.name);
             recipes = await this.generateRecipesWithGemini(ingNames);
           } else {
-            // APIキーがない、または期限間近の食材がない場合はGASからランダム提案（フォールバック）
-            const resp = await fetch(gasUrl);
-            if (!resp.ok) throw new Error('Network response was not ok');
-            recipes = await resp.json();
+            // AIキーがない、または期限間近の食材がない場合
+            recipes = [
+              { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜" },
+              { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉" },
+              { title: "彩り野菜の肉野菜炒め", url: "https://cookpad.com/search/野菜炒め", ing: "キャベツ、人参、豚肉" },
+              { title: "とろ〜り卵の納豆チャーハン", url: "https://cookpad.com/search/納豆チャーハン", ing: "納豆、卵、ごはん" },
+              { title: "簡単！鮭のムニエル", url: "https://cookpad.com/search/鮭 ムニエル", ing: "鮭、バター" }
+            ];
           }
 
-          if (!Array.isArray(recipes) || recipes.length === 0) {
-            throw new Error('レシピデータが空でした');
-          }
+          if (!Array.isArray(recipes) || recipes.length === 0) throw new Error('レシピデータが空でした');
 
           safeStorage.set(this.recipeCacheKey, JSON.stringify(recipes));
           safeStorage.set(this.recipeTimestampKey, now.toString());
@@ -783,8 +789,8 @@
     },
 
     async generateRecipesWithGemini(ingredientsList) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
-      const prompt = `以下の賞味期限が近い食材を全て、または一部使って作れる、簡単で美味しいレシピを3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。余計な文字列（Markdownのバッククォートなど）は不要です。\n[{"title": "レシピ名", "url": "https://cookpad.com/search/使用する主な食材の検索用URLエンコード文字列", "ing": "使用する主な食材"}]`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+      const prompt = `以下の賞味期限が近い食材を全て、または一部使って作れる、簡単で美味しいレシピを3〜5個提案してください。\n食材: ${ingredientsList.join("、")}\n\n必ず以下のJSON配列フォーマットのみを出力してください。urlにはCookpadの各レシピ検索結果ページへのURLを入れてください。\n[{"title": "レシピ名", "url": "https://cookpad.com/search/...", "ing": "使用する主な食材"}]`;
 
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
@@ -808,6 +814,7 @@
         throw new Error("AIが正しくない形式で回答しました");
       }
     },
+
 
     async consumeItem(id) {
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');

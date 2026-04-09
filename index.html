@@ -525,8 +525,9 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbz511bwtpKfuZ60Qj4DUJwOLkBRmNq-lQTdVp0BlyLhBZ02SoFDsVUuDcP_HywmD_l2/exec',
-    // APIキーはGAS側で管理
+gasStorageUrl: "https://script.google.com/macros/s/AKfycbwIX22-HRtWk93u4r2B1KUV6h9w01-r5HcZkwSwAvx3Yz8gW0YHF0n1YbPmOOWei8sr/exec", // ← URLをクォーテーション("")で囲んで貼り付け
+// APIキーはGAS側で管理
+
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -566,7 +567,9 @@
 
     updateNotifyBtnState() {
       const btn = document.getElementById('notify-perm-btn');
-      if (btn && Notification.permission === 'granted') {
+      if (!btn) return;
+      
+      if ('Notification' in window && Notification.permission === 'granted') {
         btn.innerText = '設定済み ✅';
         btn.style.background = '#f1f5f9';
         btn.style.color = '#64748b';
@@ -575,12 +578,22 @@
     },
 
     async requestNotificationPermission() {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        this.showToast('通知が許可されました！');
-        this.updateNotifyBtnState();
-      } else {
-        this.showToast('通知が拒否されました（ブラウザ設定を確認してください）');
+      if (!('Notification' in window)) {
+        this.showToast('お使いのブラウザはプッシュ通知に対応していません（iPhoneの場合は「ホーム画面に追加」を試してください）');
+        return;
+      }
+      
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          this.showToast('通知が許可されました！');
+          this.updateNotifyBtnState();
+        } else {
+          this.showToast('通知が拒否されました（ブラウザ設定を確認してください）');
+        }
+      } catch (e) {
+        this.showToast('通知設定中にエラーが発生しました');
+        console.error(e);
       }
     },
 
@@ -910,6 +923,7 @@
         
         await fetch(this.gasStorageUrl, {
           method: 'POST',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         });
@@ -1427,6 +1441,7 @@
         for (const item of demoData) {
           await fetch(this.gasStorageUrl, {
             method: 'POST',
+            mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ action: 'add', email: this.userEmail, ...item, reg: new Date().toISOString() })
           });
@@ -1462,8 +1477,7 @@
     async handleFileUpload(event) {
         const files = event.target.files;
         if (!files || files.length === 0) return;
-        if (!this.apiKey) return this.showToast('APIキー（AIキー）を設定してください');
-        if (!this.userEmail) return this.showToast('メールアドレスを登録してください');
+        if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
         
         const loader = document.getElementById('ocr-loading');
         const loaderText = loader.querySelector('p');
@@ -1498,7 +1512,7 @@
                     }
                 } catch(err) {
                     console.error(`File ${i} Error:`, err);
-                    this.showToast(`${file.name}の解析に失敗しました`);
+                    this.showToast(`ERR-OCR-000: ${file.name}の解析に失敗しました。詳細: ${err.message}`);
                 }
             }
 
@@ -1532,6 +1546,7 @@
       try {
         await fetch(this.gasStorageUrl, {
           method: 'POST',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'add', email: this.userEmail, name, exp, qty: 1, cat: res.cat || 'その他', reg: new Date().toISOString() })
         });
@@ -1541,8 +1556,7 @@
     },
 
     async captureAndOCR() {
-      if (!this.apiKey) return this.showToast('設定からAPIキーを入力してください');
-      if (!this.userEmail) return this.showToast('設定画面からメールアドレスを登録してください');
+      if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
 
       const v = document.getElementById('video-preview');
       const c = document.createElement('canvas');
@@ -1570,8 +1584,41 @@
       }
     },
 
+    async getApiKeyFromGAS() {
+      if (this._cachedApiKey) return this._cachedApiKey;
+      if (!this.gasStorageUrl) throw new Error("ERR-SYS-002: 設定画面からGASのURLを登録してください。");
+      
+      try {
+        const url = `${this.gasStorageUrl}?action=getApiKey`;
+        const resp = await fetch(url, { redirect: 'follow' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        
+        const text = await resp.text();
+        let key = text.trim();
+        try {
+            const data = JSON.parse(text);
+            if (data && data.apiKey) key = data.apiKey;
+            else if (data && data.key) key = data.key;
+        } catch (e) {
+            // JSONパースエラー時はテキストそのものをキーとして利用
+        }
+        if (!key || key.includes('<html') || key.startsWith("<!DOCTYPE")) {
+            throw new Error('ERR-GAS-002: GASが無効な形式のレスポンスを返しました');
+        }
+        
+        this._cachedApiKey = key;
+        return key;
+      } catch (e) {
+        console.error('GAS API Key fetch Error:', e);
+        throw new Error('ERR-GAS-001: GASからのAPIキー取得に失敗しました。GASのURLやWebアプリ側のgetApiKey実装を確認してください。');
+      }
+    },
+
     async callGeminiAPI(base64Image) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+      const apiKey = await this.getApiKeyFromGAS();
+      if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。GASの設定を確認してください。");
+      
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
       const payload = {
         contents: [{
           parts: [
@@ -1588,28 +1635,34 @@
         generationConfig: { responseMimeType: "application/json" }
       };
 
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      let resp;
+      try {
+        resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        throw new Error("ERR-OCR-002: 通信エラーが発生しました。インターネット接続を確認してください。");
+      }
       
       if (!resp.ok) {
-        const errData = await resp.json();
-        throw new Error(errData.error?.message || `HTTP ${resp.status}`);
+        let errStr = `HTTP ${resp.status}`;
+        try { const errData = await resp.json(); errStr = errData.error?.message || errStr; } catch(e){}
+        throw new Error(`ERR-OCR-003: APIリクエスト失敗 - ${errStr}`);
       }
 
       const data = await resp.json();
-      if (!data.candidates || data.candidates.length === 0) throw new Error("AIが回答を生成できませんでした。画像を確認してください。");
+      if (!data.candidates || data.candidates.length === 0) throw new Error("ERR-OCR-004: AIが回答を生成できませんでした。画像を確認してください。");
       const candidate = data.candidates[0];
-      if (candidate.finishReason === "SAFETY") throw new Error("安全フィルターによりブロックされました。");
+      if (candidate.finishReason === "SAFETY") throw new Error("ERR-OCR-005: 安全フィルターにより回答がブロックされました。");
       
       let text = candidate.content.parts[0].text;
       try {
           return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
       } catch(e) {
           console.log("Raw Response:", text);
-          throw new Error("AIの回答形式が正しくありません。");
+          throw new Error("ERR-OCR-006: AIの回答形式が想定外のフォーマットでした。");
       }
     },
 
@@ -1665,15 +1718,32 @@
 
 
     async checkReminders() {
-      const items = (await this.getAllItems()).filter(i => !i.archivedAt);
+      const itemsData = await this.getAllItems();
+      if (!itemsData) {
+        console.warn('ERR-REM-001: アイテムリストの取得に失敗したため、リマインダーをスキップします。');
+        return; // データが取得できなかった場合はスキップ
+      }
+      
+      const items = itemsData.filter(i => !i.archivedAt && i.exp);
       const today = new Date();
       today.setHours(0,0,0,0);
       
       const thresholdDays = parseInt(safeStorage.get('bestb4_reminder_days', '2'));
-      
-      const near = items.filter(i => {
-        const diff = Math.ceil((new Date(i.exp) - today) / 86400000);
-        return diff >= 0 && diff <= thresholdDays; // 設定された日数以内
+      let near = [];
+
+      items.forEach(i => {
+        try {
+          const parts = i.exp.split('-');
+          if (parts.length === 3) {
+            const expDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            const diff = Math.ceil((expDate.getTime() - today.getTime()) / 86400000);
+            if (diff >= 0 && diff <= thresholdDays) {
+              near.push(i);
+            }
+          }
+        } catch (e) {
+          console.warn('ERR-REM-002: 日付パースエラー', e);
+        }
       });
 
       if (near.length > 0) {
@@ -1681,7 +1751,7 @@
         this.showToast(`🔔 ${msg}`);
         
         // システム通知 (PWA通知)
-        if (Notification.permission === 'granted') {
+        if ('Notification' in window && Notification.permission === 'granted') {
           navigator.serviceWorker.ready.then(reg => {
             reg.showNotification('BestB4 リマインダー', {
               body: msg,
@@ -1689,6 +1759,8 @@
               badge: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png',
               tag: 'exp-reminder'
             });
+          }).catch(e => {
+            console.error('ERR-REM-003: ServiceWorker通知が失敗しました', e);
           });
         }
       }

@@ -525,9 +525,8 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-gasStorageUrl: "https://script.google.com/macros/s/AKfycbwkgMlvYPVfsQgSYvhkwXS1PJH3XXsY3bSPulWUCwaV3KnfqFEbZi5B4AXJmlG_NEZC/exec", // ← URLをクォーテーション("")で囲んで貼り付け
-// APIキーはGAS側で管理
-
+    gasStorageUrl:'AIzaSyBvZ0KtsRONLOhgMhbFI0KQq5jLMyMBOKc',
+    // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
@@ -1605,6 +1604,11 @@ gasStorageUrl: "https://script.google.com/macros/s/AKfycbwkgMlvYPVfsQgSYvhkwXS1P
         if (!key || key.includes('<html') || key.startsWith("<!DOCTYPE")) {
             throw new Error('ERR-GAS-002: GASが無効な形式のレスポンスを返しました');
         }
+
+        // GeminiのAPIキーは通常 "AIza" から始まります
+        if (!key.startsWith("AIza")) {
+            throw new Error(`ERR-GAS-003: GASから取得した文字列が有効なAPIキーの形式（AIza...）ではありません。GAS側に「action=getApiKey」に対するAPIキー返却処理が正しく実装されているか確認してください。（取得した先頭データ: ${key.substring(0, 15)}...）`);
+        }
         
         this._cachedApiKey = key;
         return key;
@@ -1618,7 +1622,7 @@ gasStorageUrl: "https://script.google.com/macros/s/AKfycbwkgMlvYPVfsQgSYvhkwXS1P
       const apiKey = await this.getApiKeyFromGAS();
       if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。GASの設定を確認してください。");
       
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
       const payload = {
         contents: [{
           parts: [

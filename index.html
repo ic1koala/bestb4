@@ -525,7 +525,7 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl:'https://script.google.com/macros/s/AKfycbwkgMlvYPVfsQgSYvhkwXS1PJH3XXsY3bSPulWUCwaV3KnfqFEbZi5B4AXJmlG_NEZC/exec',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbxJpyd1Jl5WEG0ZxOhaub7_NhO2bGXjiF4svk3yMTEAZQIrYfIYF6YlnPt3KPkhJPAs/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
@@ -1622,7 +1622,6 @@
       const apiKey = await this.getApiKeyFromGAS();
       if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。GASの設定を確認してください。");
       
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
       const payload = {
         contents: [{
           parts: [
@@ -1639,35 +1638,75 @@
         generationConfig: { responseMimeType: "application/json" }
       };
 
-      let resp;
-      try {
-        resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } catch (e) {
-        throw new Error("ERR-OCR-002: 通信エラーが発生しました。インターネット接続を確認してください。");
-      }
-      
-      if (!resp.ok) {
-        let errStr = `HTTP ${resp.status}`;
-        try { const errData = await resp.json(); errStr = errData.error?.message || errStr; } catch(e){}
-        throw new Error(`ERR-OCR-003: APIリクエスト失敗 - ${errStr}`);
+      // 鉄壁のフォールバック計画
+      const modelsToTry = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-1.5-pro'
+      ];
+
+      let lastErrorStr = "";
+
+      for (const model of modelsToTry) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        try {
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!resp.ok) {
+            let errStr = `HTTP ${resp.status}`;
+            try { 
+              const errData = await resp.json(); 
+              errStr = errData.error?.message || errStr; 
+            } catch(e){}
+            
+            // APIキー自体が弾かれた場合は、他のモデルを試しても無駄なので即失敗させる
+            if (errStr.includes("API key not valid")) {
+              throw new Error(`ERR-OCR-003: APIリクエスト失敗 - API key not valid. GASのAPIキーが正しくありません。`);
+            }
+            
+            lastErrorStr = `${model}: ${errStr}`;
+            console.warn(`[Fallback] ${model} failed: ${errStr}. Trying next...`);
+            continue; // 次のモデルでリトライ！
+          }
+
+          const data = await resp.json();
+          if (!data.candidates || data.candidates.length === 0) {
+            lastErrorStr = `${model}: キャンディデートなし`;
+            continue;
+          }
+          
+          const candidate = data.candidates[0];
+          if (candidate.finishReason === "SAFETY") {
+             // セーフティフィルター発動時は致命傷なので例外を投げる
+             throw new Error("ERR-OCR-005: 安全フィルターにより回答がブロックされました。");
+          }
+          
+          let text = candidate.content.parts[0].text;
+          try {
+              return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+          } catch(e) {
+              console.log("Raw Response from", model, ":", text);
+              lastErrorStr = `${model}: JSONパース失敗`;
+              continue; // フォーマットが壊れていた場合も一応別モデルでリトライ
+          }
+        } catch (e) {
+          // 通信エラーや、意図的にスローした致命的エラーの場合
+          if (e.message.includes("ERR-OCR-003") || e.message.includes("ERR-OCR-005")) throw e;
+          
+          console.error(`[Fallback] Error with ${model}:`, e);
+          lastErrorStr = `${model}: ${e.message}`;
+        }
       }
 
-      const data = await resp.json();
-      if (!data.candidates || data.candidates.length === 0) throw new Error("ERR-OCR-004: AIが回答を生成できませんでした。画像を確認してください。");
-      const candidate = data.candidates[0];
-      if (candidate.finishReason === "SAFETY") throw new Error("ERR-OCR-005: 安全フィルターにより回答がブロックされました。");
-      
-      let text = candidate.content.parts[0].text;
-      try {
-          return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-      } catch(e) {
-          console.log("Raw Response:", text);
-          throw new Error("ERR-OCR-006: AIの回答形式が想定外のフォーマットでした。");
-      }
+      // 全てのモデルが駄目だった場合
+      throw new Error(`ERR-OCR-00X: 全てのAIモデルで解析に失敗しました。詳細: ${lastErrorStr}`);
     },
 
     parseGeminiResult(res) {

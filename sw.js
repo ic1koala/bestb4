@@ -9,6 +9,10 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // Google APIへの通信はService Workerで干渉せず直接通す（巨大データのPOSTエラー回避）
+  if (e.request.url.includes('googleapis.com') || e.request.url.includes('script.google.com')) {
+    return;
+  }
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
 

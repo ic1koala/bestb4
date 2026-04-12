@@ -525,7 +525,7 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycby1vXuObCb9fQkY_0aOK1fGraN-bSrqvxanQje6d8qJ1LyiXgbrWO3h1RANFg0AqNc_/exec',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
@@ -1630,58 +1630,81 @@
 
     async callGeminiAPI(base64Image) {
       const apiKey = await this.getApiKeyFromGAS().catch(e => {
-        throw new Error("ERR-OCR-001: GASからのキー取得に失敗しました。URLを確認してください。");
+        throw new Error("ERR-OCR-001: GAS接続エラー。URLとWebアプリ公開設定を確認してください。");
       });
       if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。");
       
-      const getText = () => "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
-      const getParts = () => [{ text: getText() }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }];
+      const prompt = "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
+      
+      // 成功実績のあるモデルリスト
+      const models = [
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash-8b',
+        'gemini-2.0-flash',
+        'gemini-1.5-pro'
+      ];
 
-      const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash', 'gemini-1.5-pro'];
-      const versions = ['v1beta', 'v1'];
-      let lastErr = "";
+      const history = [];
+      
+      const executeRequest = async (modelName, version, useJsonMode) => {
+        const url = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${apiKey}`;
+        const payload = {
+          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }],
+          generationConfig: useJsonMode ? { responseMimeType: "application/json" } : {}
+        };
+        
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const text = await res.text();
+        if (!res.ok) {
+          let msg = text;
+          try { const d = JSON.parse(text); msg = d.error?.message || text; } catch(e){}
+          throw { status: res.status, message: msg };
+        }
+        return JSON.parse(text);
+      };
 
       for (const m of models) {
-        // 各モデルに対して「JSONモードあり」と「なし」の両方を試す
-        for (const useJsonMode of [true, false]) {
-          for (const v of versions) {
-            try {
-              const payload = {
-                contents: [{ parts: getParts() }],
-                generationConfig: useJsonMode ? { responseMimeType: "application/json" } : {}
-              };
-              
-              const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
-              
-              if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                const msg = err.error?.message || `HTTP ${res.status}`;
-                if (msg.includes("API key not valid")) throw new Error("APIキーが無効です");
-                lastErr = `${m}(${v},json:${useJsonMode}): ${msg}`;
-                // ペイロードエラー(400)の場合は次の設定（JSONモードなし等）へ
+        // 各モデルにつき：v1beta(JSON) -> v1beta(標準) -> v1(標準) の3段階で試行
+        const configs = [
+          { v: 'v1beta', j: true },
+          { v: 'v1beta', j: false },
+          { v: 'v1', j: false }
+        ];
+
+        for (const conf of configs) {
+          try {
+            console.log(`[AI-Try] ${m} (${conf.v}, JSON:${conf.j})...`);
+            const data = await executeRequest(m, conf.v, conf.j);
+            
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              const raw = data.candidates[0].content.parts[0].text;
+              const jsonStr = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+              try {
+                return JSON.parse(jsonStr);
+              } catch(e) {
+                history.push(`${m}/${conf.v}: JSONパース失敗`);
                 continue;
               }
-
-              const data = await res.json();
-              if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                const txt = data.candidates[0].content.parts[0].text;
-                // JSON抽出ロジック（マークダウン記法 ```json ... ``` が混じっても除去）
-                const jsonStr = txt.replace(/```json/g, '').replace(/```/g, '').trim();
-                return JSON.parse(jsonStr);
-              }
-            } catch (e) {
-              if (e.message === "APIキーが無効です") throw new Error("ERR-OCR-003: APIキーが正しくありません");
-              lastErr = e.message;
             }
+          } catch (err) {
+            const errStr = `${m}(${conf.v},j:${conf.j}): ${err.status||'ERR'} - ${err.message?.substring(0, 40)}`;
+            console.warn(`[AI-Failed] ${errStr}`);
+            history.push(errStr);
+            if (err.message?.includes("API key not valid")) throw new Error("ERR-OCR-003: APIキーが正しくありません");
+            // 404や400, 429なら次の設定/モデルへ
+            continue;
           }
         }
       }
-      throw new Error(`ERR-OCR-00X: 全てのモデル・設定で失敗しました - ${lastErr}`);
+
+      const historySummary = history.join('\n');
+      throw new Error(`ERR-OCR-00X: 全てのAI試行が失敗しました。\n\n【詳細ログ】\n${historySummary}`);
     },
 
     parseGeminiResult(res) {

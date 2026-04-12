@@ -525,43 +525,53 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbyTgzO7_5yqW7BYcGZ5zU74dP3VvhxJZV1AD76QpvP8uVTfm7zw38MJcnRehaJzVNlk/exec'),
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbwzYzFuay6VrxUmqlXOlrUOjdKe_zrexjq21rMD92Qjcv92Xw3MMl0lvot5mCapxwE/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
 
     async init() {
-      // 1. Service Worker登録 (PWA用)
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(console.error);
-      }
-      
-      this.updateEmailInputState();
-      this.updateNotifyBtnState();
-      this.updateDateLabel();
-      this.renderList();
-      
-      console.log('BestB4 Initialized');
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        setTimeout(() => {
-          splash.style.transition = 'opacity 1s ease, background 0.8s ease';
-          splash.style.background = '#fff';
+      try {
+        // 1. Service Worker登録 (PWA用)
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('./sw.js').catch(console.error);
+        }
+        
+        this.updateEmailInputState();
+        this.updateNotifyBtnState();
+        this.updateDateLabel();
+        this.renderList();
+        
+        console.log('BestB4 Initialized');
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
           setTimeout(() => {
-            this.showScreen('list-screen', true);
-            document.getElementById('bottom-nav').style.display = 'flex';
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 1000);
-            this.checkReminders();
-          }, 1000);
-        }, 800);
+            splash.style.transition = 'opacity 1s ease, background 0.8s ease';
+            splash.style.background = '#fff';
+            setTimeout(() => {
+              this.showScreen('list-screen', true);
+              if (document.getElementById('bottom-nav')) {
+                document.getElementById('bottom-nav').style.display = 'flex';
+              }
+              splash.style.opacity = '0';
+              setTimeout(() => splash.style.display = 'none', 1000);
+              this.checkReminders();
+            }, 1000);
+          }, 800);
+        }
+        
+        // リマインド設定の読み込み
+        const savedTime = safeStorage.get('bestb4_reminder_time', '09:00');
+        const savedDays = safeStorage.get('bestb4_reminder_days', '2');
+        if (document.getElementById('reminder-time')) document.getElementById('reminder-time').value = savedTime;
+        if (document.getElementById('reminder-days')) document.getElementById('reminder-days').value = savedDays;
+      } catch (e) {
+        console.error("Initialization Error:", e);
+        alert("アプリの起動中にエラーが発生しました: " + e.message);
+        // エラー時もスプラッシュ画面を強制削除
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
       }
-      
-      // リマインド設定の読み込み
-      const savedTime = safeStorage.get('bestb4_reminder_time', '09:00');
-      const savedDays = safeStorage.get('bestb4_reminder_days', '2');
-      if (document.getElementById('reminder-time')) document.getElementById('reminder-time').value = savedTime;
-      if (document.getElementById('reminder-days')) document.getElementById('reminder-days').value = savedDays;
     },
 
     updateNotifyBtnState() {
@@ -1619,8 +1629,10 @@
     },
 
     async callGeminiAPI(base64Image) {
-      const apiKey = await this.getApiKeyFromGAS();
-      if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。GASの設定を確認してください。");
+      const apiKey = await this.getApiKeyFromGAS().catch(e => {
+        throw new Error("ERR-OCR-001: GASからのキー取得に失敗しました。URLを確認してください。");
+      });
+      if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。");
       
       const payload = {
         contents: [{
@@ -1638,75 +1650,40 @@
         generationConfig: { responseMimeType: "application/json" }
       };
 
-      // 鉄壁のフォールバック計画
-      // クォータ保護のため1.5系からスタート
-      const modelsToTry = [
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b',
-        'gemini-2.0-flash-exp',
-        'gemini-2.0-flash',
-        'gemini-1.5-pro'
-      ];
-      
-      const endpointsToTry = ['v1beta', 'v1']; // APIバージョンのフォールバック
+      const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+      const versions = ['v1beta', 'v1'];
+      let lastErr = "";
 
-      let lastErrorStr = "";
-
-      for (const model of modelsToTry) {
-        for (const endpoint of endpointsToTry) {
-          const url = `https://generativelanguage.googleapis.com/${endpoint}/models/${model}:generateContent?key=${apiKey}`;
-          
+      for (const m of models) {
+        for (const v of versions) {
           try {
-            const resp = await fetch(url, {
+            const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
+            const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
             
-            if (!resp.ok) {
-              let errStr = `HTTP ${resp.status}`;
-              try { 
-                const errData = await resp.json(); 
-                errStr = errData.error?.message || errStr; 
-              } catch(e){}
-              
-              if (errStr.includes("API key not valid")) {
-                throw new Error(`ERR-OCR-003: APIリクエスト失敗 - API key not valid. GASのAPIキーが正しくありません。`);
-              }
-              
-              lastErrorStr = `${model} (${endpoint}): ${errStr}`;
-              console.warn(`[Fallback] ${model} with ${endpoint} failed: ${errStr}. Trying next...`);
-              continue; // 失敗したら次のエンドポイントかモデルへ
-            }
-
-            const data = await resp.json();
-            if (!data.candidates || data.candidates.length === 0) {
-              lastErrorStr = `${model} (${endpoint}): キャンディデートなし`;
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              const msg = err.error?.message || `HTTP ${res.status}`;
+              if (msg.includes("API key not valid")) throw new Error("APIキーが無効です");
+              lastErr = `${m}(${v}): ${msg}`;
               continue;
             }
-            
-            const candidate = data.candidates[0];
-            if (candidate.finishReason === "SAFETY") {
-               throw new Error("ERR-OCR-005: 安全フィルターにより回答がブロックされました。");
-            }
-            
-            let text = candidate.content.parts[0].text;
-            try {
-                return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-            } catch(e) {
-                console.log("Raw Response from", model, endpoint, ":", text);
-                lastErrorStr = `${model} (${endpoint}): JSONパース失敗`;
-                continue; 
+
+            const data = await res.json();
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              const txt = data.candidates[0].content.parts[0].text;
+              return JSON.parse(txt.replace(/```json/g, '').replace(/```/g, '').trim());
             }
           } catch (e) {
-            if (e.message.includes("ERR-OCR-003") || e.message.includes("ERR-OCR-005")) throw e;
-            console.error(`[Fallback] Error with ${model} (${endpoint}):`, e);
-            lastErrorStr = `${model} (${endpoint}): ${e.message}`;
+            if (e.message === "APIキーが無効です") throw new Error("ERR-OCR-003: APIキーが正しくありません");
+            lastErr = e.message;
           }
         }
       }
-
-      throw new Error(`ERR-OCR-00X: 全てのAIモデルとAPIバージョンで解析に失敗しました。詳細: ${lastErrorStr}`);
+      throw new Error(`ERR-OCR-00X: 全てのモデルで失敗しました - ${lastErr}`);
     },
 
     parseGeminiResult(res) {
@@ -1819,6 +1796,13 @@
         setTimeout(() => t.classList.remove('show'), 3000); 
       }
     }
+  };
+
+  window.onerror = function(msg, url, lineNo, columnNo, error) {
+    alert("エラーが発生しました:\n" + msg + "\n行: " + lineNo);
+    const splash = document.getElementById('splash-screen');
+    if (splash) splash.style.display = 'none';
+    return false;
   };
 
   window.onload = () => app.init();

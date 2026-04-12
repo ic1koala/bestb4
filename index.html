@@ -525,7 +525,7 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: 'https://script.google.com/macros/s/AKfycbwzYzFuay6VrxUmqlXOlrUOjdKe_zrexjq21rMD92Qjcv92Xw3MMl0lvot5mCapxwE/exec',
+    gasStorageUrl: 'https://script.google.com/macros/s/AKfycby1vXuObCb9fQkY_0aOK1fGraN-bSrqvxanQje6d8qJ1LyiXgbrWO3h1RANFg0AqNc_/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
@@ -1634,56 +1634,54 @@
       });
       if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。");
       
-      const payload = {
-        contents: [{
-          parts: [
-            { text: "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'." },
-            { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-          ]
-        }],
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ],
-        generationConfig: { responseMimeType: "application/json" }
-      };
+      const getText = () => "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
+      const getParts = () => [{ text: getText() }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }];
 
-      const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+      const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash', 'gemini-1.5-pro'];
       const versions = ['v1beta', 'v1'];
       let lastErr = "";
 
       for (const m of models) {
-        for (const v of versions) {
-          try {
-            const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
-            const res = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              const msg = err.error?.message || `HTTP ${res.status}`;
-              if (msg.includes("API key not valid")) throw new Error("APIキーが無効です");
-              lastErr = `${m}(${v}): ${msg}`;
-              continue;
-            }
+        // 各モデルに対して「JSONモードあり」と「なし」の両方を試す
+        for (const useJsonMode of [true, false]) {
+          for (const v of versions) {
+            try {
+              const payload = {
+                contents: [{ parts: getParts() }],
+                generationConfig: useJsonMode ? { responseMimeType: "application/json" } : {}
+              };
+              
+              const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                const msg = err.error?.message || `HTTP ${res.status}`;
+                if (msg.includes("API key not valid")) throw new Error("APIキーが無効です");
+                lastErr = `${m}(${v},json:${useJsonMode}): ${msg}`;
+                // ペイロードエラー(400)の場合は次の設定（JSONモードなし等）へ
+                continue;
+              }
 
-            const data = await res.json();
-            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-              const txt = data.candidates[0].content.parts[0].text;
-              return JSON.parse(txt.replace(/```json/g, '').replace(/```/g, '').trim());
+              const data = await res.json();
+              if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                const txt = data.candidates[0].content.parts[0].text;
+                // JSON抽出ロジック（マークダウン記法 ```json ... ``` が混じっても除去）
+                const jsonStr = txt.replace(/```json/g, '').replace(/```/g, '').trim();
+                return JSON.parse(jsonStr);
+              }
+            } catch (e) {
+              if (e.message === "APIキーが無効です") throw new Error("ERR-OCR-003: APIキーが正しくありません");
+              lastErr = e.message;
             }
-          } catch (e) {
-            if (e.message === "APIキーが無効です") throw new Error("ERR-OCR-003: APIキーが正しくありません");
-            lastErr = e.message;
           }
         }
       }
-      throw new Error(`ERR-OCR-00X: 全てのモデルで失敗しました - ${lastErr}`);
+      throw new Error(`ERR-OCR-00X: 全てのモデル・設定で失敗しました - ${lastErr}`);
     },
 
     parseGeminiResult(res) {

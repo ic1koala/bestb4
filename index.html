@@ -1540,7 +1540,24 @@
     fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+        reader.onload = async (e) => {
+          // 画像を最大1024pxにリサイズして容量削減（通信エラー対策）
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const max = 1024;
+            if (w > max || h > max) {
+              if (w > h) { h = h * (max / w); w = max; }
+              else { w = w * (max / h); h = max; }
+            }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+          };
+          img.src = e.target.result;
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
@@ -1636,12 +1653,12 @@
       
       const prompt = "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
       
-      // 成功実績のあるモデルリスト
+      // 成功実績のあるモデルリスト（2.0系から優先）
       const models = [
+        'gemini-2.0-flash',
         'gemini-1.5-flash',
         'gemini-1.5-flash-latest',
         'gemini-1.5-flash-8b',
-        'gemini-2.0-flash',
         'gemini-1.5-pro'
       ];
 

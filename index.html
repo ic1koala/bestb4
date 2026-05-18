@@ -47,6 +47,10 @@
       display: none; flex-direction: column; z-index: 10; overflow: hidden;
       opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
       padding-bottom: calc(90px + env(safe-area-inset-bottom));
+      background: #fbfbfd;
+      background-image: 
+        radial-gradient(at 0% 0%, hsla(160, 100%, 95%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(190, 100%, 96%, 1) 0px, transparent 50%);
     }
     .screen.active { display: flex; opacity: 1; }
 
@@ -228,6 +232,14 @@
       50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(16, 185, 129, 0.6); } 
       100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } 
     }
+    .nav-cam-btn {
+      width: 72px; height: 72px; background: var(--primary); border-radius: 50%;
+      display: flex; justify-content: center; align-items: center;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); border: 5px solid #fff;
+      cursor: pointer; transition: 0.3s;
+    }
+    .nav-cam-btn:active { transform: scale(0.9) translateY(-56px) !important; }
+    .nav-cam-btn svg { width: 36px; height: 36px; stroke: #fff; stroke-width: 2.5; }
   </style>
 </head>
 <body>
@@ -348,6 +360,10 @@
         <input type="email" id="user-email" placeholder="メールアドレスを入力してください" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
         <button id="email-btn" onclick="app.toggleEmailEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
       </div>
+      <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
+    </div>
+
+    <!-- 1. リマインド通知設定 -->
     <div class="settings-section" style="margin-bottom:30px;">
       <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">リマインド通知設定</p>
       <div style="display:flex; gap:6px; align-items:center; background:#fff; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
@@ -366,10 +382,27 @@
       <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※設定条件に合わせて食材をポップアップまたはメールでお知らせします。</p>
     </div>
 
-    <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
-
+    <!-- 2. GAS連携設定 (管理者・詳細設定) -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">GAS連携設定</p>
+      <div id="gas-setup-container" style="display:flex; flex-direction:column; gap:8px;">
+        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.8rem; font-weight:600;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <button id="gas-url-btn" onclick="app.toggleGasUrlEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
+          <button onclick="app.resetGasUrlDefault()" style="padding:8px 12px; border-radius:12px; border:none; background:#f1f5f9; color:#64748b; font-weight:700; font-size:0.7rem; cursor:pointer;">初期値にリセット</button>
+        </div>
+      </div>
+      <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※GAS（Google Apps Script）のWebアプリURLを設定します。空欄の場合は初期設定のURLが使用されます。</p>
     </div>
-    <!-- 設定 UI は削除されました (URLとキーはソースまたはストレージで管理) -->
+
+    <!-- 3. 消費履歴 -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">消費履歴</p>
+      <div id="history-list" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- 履歴アイテムがJSで描画されます -->
+      </div>
+      <button id="history-toggle" style="width:100%; margin-top:12px; padding:10px; border-radius:12px; border:none; background:#f1f5f9; color:#64748b; font-weight:700; font-size:0.75rem; cursor:pointer; display:none;"></button>
+    </div>
 
     <!-- 2. 使い方ガイド -->
 
@@ -525,7 +558,7 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: safeStorage.get('bestb4_gas_url'),
+    gasStorageUrl: safeStorage.get('bestb4_gas_url') || 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
@@ -538,6 +571,7 @@
         }
         
         this.updateEmailInputState();
+        this.updateGasUrlInputState();
         this.updateNotifyBtnState();
         this.updateDateLabel();
         this.renderList();
@@ -649,6 +683,65 @@
         this.renderList(); // Refresh list immediately with new email
         this.showToast('メールアドレスを保存しました');
       }
+    },
+
+    updateGasUrlInputState() {
+      const input = document.getElementById('gas-url-input');
+      const btn = document.getElementById('gas-url-btn');
+      if (!input || !btn) return;
+
+      const defaultUrl = 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec';
+      const currentUrl = safeStorage.get('bestb4_gas_url') || defaultUrl;
+
+      input.value = currentUrl;
+      if (safeStorage.get('bestb4_gas_url')) {
+        input.disabled = true;
+        input.style.background = "#f1f5f9";
+        input.style.color = "#64748b";
+        btn.innerText = "変更";
+        btn.style.background = "#94a3b8";
+      } else {
+        input.disabled = true;
+        input.style.background = "#f1f5f9";
+        input.style.color = "#64748b";
+        btn.innerText = "変更";
+        btn.style.background = "#94a3b8";
+      }
+    },
+
+    toggleGasUrlEdit() {
+      const input = document.getElementById('gas-url-input');
+      const btn = document.getElementById('gas-url-btn');
+      if (!input || !btn) return;
+
+      if (input.disabled) {
+        input.disabled = false;
+        input.style.background = "#fff";
+        input.style.color = "#1e293b";
+        input.focus();
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+      } else {
+        const val = input.value.trim();
+        if (!val) return this.showToast('GASのURLを入力してください');
+        if (!val.startsWith('https://script.google.com/')) {
+          return this.showToast('有効なGoogle Apps ScriptのURLを入力してください');
+        }
+        this.gasStorageUrl = val;
+        safeStorage.set('bestb4_gas_url', val);
+        this.updateGasUrlInputState();
+        this.showToast('GASのURLを保存しました');
+        this.renderList();
+      }
+    },
+
+    resetGasUrlDefault() {
+      const defaultUrl = 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec';
+      safeStorage.remove('bestb4_gas_url');
+      this.gasStorageUrl = defaultUrl;
+      this.updateGasUrlInputState();
+      this.showToast('GASのURLを初期値にリセットしました');
+      this.renderList();
     },
 
 
@@ -987,8 +1080,7 @@
       if (id === 'recipe-screen') this.renderRecipes();
       if (id === 'settings-screen') {
           this.renderHistory();
-          if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
-          this.checkPremiumCode(false); // Update premium status display on settings screen
+          this.updateGasUrlInputState();
       }
       if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
     },

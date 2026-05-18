@@ -4,15 +4,36 @@
  * レシピ生成（AI）、在庫管理、および毎日のお知らせ機能を統合したスクリプトです。
  */
 
-// ★ここに自分のGemini APIキーを貼り付けてください
-const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; 
+// Gemini APIキーをスクリプトプロパティから取得します（なければ下記に記述）
+const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY") || "YOUR_API_KEY_HERE";
+
+/**
+ * アプリで使用するスプレッドシートを取得します（バインド・スタンドアロン両対応）
+ */
+function getActiveSpreadsheet() {
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    const ssId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
+    if (ssId) {
+      try {
+        ss = SpreadsheetApp.openById(ssId);
+      } catch (err) {
+        console.error("Failed to open spreadsheet by SPREADSHEET_ID: " + err.toString());
+      }
+    }
+  }
+  if (!ss) {
+    throw new Error("スプレッドシートが見つかりません。コンテナバインドスクリプトにするか、スクリプトプロパティに SPREADSHEET_ID を設定してください。");
+  }
+  return ss;
+} 
 
 /**
  * 毎日決まった時間に実行する通知関数
  * GASエディタの「トリガー（時計アイコン）」から、1日1回実行するように設定してください。
  */
 function dailyReminder() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const sheet = ss.getSheetByName("在庫リスト") || ss.getSheets()[0];
   const rows = sheet.getDataRange().getValues();
   const today = new Date();
@@ -70,7 +91,7 @@ function doGet(e) {
   }
   
   try {
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var ss    = getActiveSpreadsheet();
     var sheet = ss.getSheetByName("在庫リスト") || ss.getSheets()[0];
     var rows  = sheet.getDataRange().getValues();
     var email = e.parameter.email;
@@ -170,7 +191,7 @@ function generateRecipesByAI(ingredients) {
 
 function doPost(e) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getActiveSpreadsheet();
     var sheet = ss.getSheetByName("在庫リスト") || ss.getSheets()[0];
     var data = JSON.parse(e.postData.contents);
     var action = data.action;

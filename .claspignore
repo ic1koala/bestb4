@@ -1,0 +1,6 @@
+# Ignore everything by default
+**/*
+
+# Keep only Apps Script files
+!Code.js
+!appsscript.json

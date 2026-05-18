@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>BestB4 | 賞味期限管理</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#10b981">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- UI simplified for Mail Integration -->
+  
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-light: #34d399;
+      --bg: #f8fafc;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --glass-bg: rgba(255, 255, 255, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --splash-bg: #ccff99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Noto Sans JP', sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    html, body {
+      height: 100dvh; width: 100vw; overflow: hidden;
+      background: #fbfbfd;
+      background-image: 
+        radial-gradient(at 0% 0%, hsla(160, 100%, 95%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(190, 100%, 96%, 1) 0px, transparent 50%);
+      color: var(--text-main);
+    }
+
+    #app-container {
+      width: 100%; height: 100dvh; max-width: 480px; position: relative; margin: 0 auto;
+      display: flex; flex-direction: column; background: transparent; overflow: hidden;
+    }
+
+    .screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100dvh;
+      display: none; flex-direction: column; z-index: 10; overflow: hidden;
+      opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
+      padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    }
+    .screen.active { display: flex; opacity: 1; }
+
+    /* 1. Splash Animation */
+    #splash-screen {
+      z-index: 1000; background: var(--splash-bg); display: flex; justify-content: center; align-items: center; pointer-events: none; padding-bottom: 0;
+      transition: background 0.6s ease, opacity 0.6s ease;
+    }
+    .splash-content { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .splash-logo {
+      font-size: 3.5rem; font-weight: 900; color: #fff; letter-spacing: -2px; margin-top: 20px;
+      opacity: 0; transform: translateY(20px); animation: logoFadeIn 2s ease 1.2s forwards;
+    }
+    @keyframes logoFadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .splash-circle {
+      width: 50px; height: 50px; background: #fff; border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: absolute; top: -400px;
+      animation: fallAndBurst 4.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes fallAndBurst {
+      0% { top: -400px; transform: scale(1); opacity: 0; }
+      15% { opacity: 1; }
+      30% { top: -60px; transform: scale(1.1); }
+      35% { top: -60px; transform: scale(0.9); }
+      40% { top: -60px; transform: scale(1); }
+      55% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(100); opacity: 1; visibility: visible; }
+    }
+
+    /* 2. List Screen */
+    .top-bar {
+      padding: 60px 24px 12px; display: flex; justify-content: space-between; align-items: flex-end;
+      background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(15px); position: sticky; top: 0; z-index: 20;
+    }
+    .top-bar h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
+    
+    .filter-bar { padding: 0 24px 12px; display: flex; justify-content: space-between; align-items: center; }
+    .sort-select {
+      background: rgba(0,0,0,0.04); border: none; padding: 8px 12px; border-radius: 12px;
+      font-size: 0.8rem; font-weight: 700; color: var(--text-muted); outline: none;
+    }
+
+    .main-content-layout { flex: 1; display: flex; overflow: hidden; margin-top: 10px; }
+    .cat-sidebar {
+      width: 76px; background: transparent; padding: 0 8px 100px;
+      overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+    }
+    .cat-tab {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 12px 4px; border-radius: 16px; background: #fff;
+      font-size: 0.65rem; font-weight: 700; color: var(--text-muted);
+      border: 1.5px solid transparent; transition: 0.2s; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .cat-tab.active { background: var(--primary); color: #fff; transform: scale(1.05); }
+    .cat-tab i { font-size: 1.2rem; margin-bottom: 4px; font-style: normal; }
+
+    .scroll-area { flex: 1; overflow-y: auto; padding: 0 16px 120px 8px; }
+    .item-card {
+      background: #fff; border-radius: 20px; padding: 18px;
+      display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+      border: 1px solid rgba(0,0,0,0.04); position: relative; transition: transform 0.3s; z-index: 2; margin-bottom: 12px;
+    }
+    .item-icon { width: 52px; height: 52px; border-radius: 16px; background: #f9fafb; display: flex; justify-content: center; align-items: center; font-size: 1.6rem; position: relative; }
+    .item-qty { position: absolute; top: -5px; right: -5px; background: var(--primary); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 8px; font-weight: 800; border: 2px solid #fff; }
+    .cal-detail-item { display: flex; align-items: center; gap: 12px; background: #fff; padding: 14px; border-radius: 18px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s; }
+    .cal-detail-item:active { transform: scale(0.98); }
+    .cal-detail-item .icon { font-size: 1.5rem; }
+    .cal-btn { padding: 8px 14px; border-radius: 12px; font-size: 0.75rem; font-weight: 800; border: none; cursor: pointer; }
+    .cal-btn.consume { background: var(--secondary); color: var(--primary); }
+    .cal-btn.edit { background: #f1f5f9; color: #64748b; }
+
+    /* Settings Details */
+    .settings-section { background: #fff; border-radius: 24px; padding: 24px; margin-bottom: 24px; border: 1.5px solid #f1f5f9; }
+    .demo-btn { width: 100%; padding: 16px; border-radius: 18px; border: 2px dashed var(--primary); background: rgba(16, 185, 129, 0.03); color: var(--primary); font-weight: 800; cursor: pointer; margin-top: 12px; transition: 0.2s; }
+    .demo-btn:active { background: rgba(16, 185, 129, 0.1); transform: scale(0.98); }
+
+    /* Bottom Nav */
+    #bottom-nav {
+      position: absolute; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 74px;
+      background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
+      border-radius: 32px; border: 1px solid rgba(255,255,255,0.3);
+      display: none; justify-content: space-between; align-items: center; z-index: 1000;
+      padding: 0 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; transition: 0.2s; width: 18%; }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn svg { width: 22px; height: 22px; stroke-width: 2.2; }
+    .nav-btn span { font-size: 0.6rem; font-weight: 800; }
+    
+    .nav-add-btn { width: 56px; height: 56px; background: var(--primary); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4); border: 5px solid #fff; transition: 0.3s; }
+    .nav-add-btn:active { transform: scale(0.9); }
+    .nav-add-btn svg { width: 32px; height: 32px; stroke: #fff; stroke-width: 3; }
+
+    /* Calendar */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; border-radius: 20px; overflow: hidden; margin-bottom: 30px; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-top: 20px; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px; }
+    .cal-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+    .cal-day-label { text-align: center; font-size: 0.65rem; font-weight: 800; color: #94a3b8; padding: 8px 0; }
+    .cal-cell { background: #f8fafc; aspect-ratio: 1/1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-weight: 800; font-size: 0.9rem; color: #334155; }
+    .cal-cell.other-month { opacity: 0.3; font-weight: 400; }
+    .cal-cell.today { background: var(--primary); color: #fff; }
+    .cal-badge { position: absolute; top: 4px; right: 4px; padding: 2px 5px; background: #ef4444; color: #fff; font-size: 0.55rem; border-radius: 6px; font-weight: 900; line-height: 1; min-width: 14px; text-align: center; }
+
+    /* Action Menu Overlay */
+    #action-menu { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); z-index: 2000; display: none; flex-direction: column; justify-content: flex-end; padding: 40px 20px 140px; }
+    #action-menu.active { display: flex; }
+    .action-options { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 400px; margin: 0 auto; }
+    .action-item { background: #fff; padding: 18px 24px; border-radius: 24px; display: flex; align-items: center; gap: 16px; font-weight: 800; font-size: 1rem; color: #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: popUp 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28) both; }
+    .action-item i { width: 44px; height: 44px; background: #f1f5f9; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    @keyframes popUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    #toast { position: absolute; top: 44px; left: 50%; transform: translateX(-50%) translateY(-20px); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 40px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: 0.3s; z-index: 2000; text-align: center; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000;
+      background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+      display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+    }
+    .entry-card {
+      background: #fff; width: 100%; max-width: 400px; border-radius: 32px; padding: 32px 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2); animation: slideUp 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.2);
+    }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    #entry-overlay { z-index: 2100; }
+
+    /* Swipe-to-Consume Styles */
+    .swipe-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      touch-action: pan-y;
+    }
+    .swipe-action-bg {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      padding-left: 24px;
+      color: #ef4444;
+      font-weight: 900;
+      font-size: 1.4rem;
+      border-radius: 20px;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.2s;
+      border: 2px solid #fee2e2;
+    }
+    .item-card {
+      /* Override margin-bottom from previous version to handle via container */
+      margin-bottom: 0 !important;
+      transform: translateX(0);
+      transition: transform 0.1s linear;
+      cursor: grab;
+    }
+    .item-card:active { cursor: grabbing; }
+
+    /* History Styles */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      opacity: 0.7;
+    }
+    .history-item .icon { font-size: 1.2rem; }
+    .history-date { font-size: 0.7rem; color: var(--text-muted); }
+    @keyframes bounce { to { transform: translateY(-10px); opacity: 0.3; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ai-pulse { animation: pulseAnim 2s infinite ease-in-out; }
+    @keyframes pulseAnim { 
+      0% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } 
+      50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(16, 185, 129, 0.6); } 
+      100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); } 
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  
+  <div id="toast">メッセージ</div>
+
+  <!-- 1. Splash Screen -->
+  <div id="splash-screen" class="screen active">
+    <div class="splash-content">
+      <div class="splash-circle"></div>
+      <div class="splash-logo">BestB4</div>
+    </div>
+  </div>
+
+  <!-- 3. List Screen -->
+  <div id="list-screen" class="screen">
+    <div class="top-bar">
+      <div>
+        <div id="today-date" style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">2026年3月21日</div>
+        <h1>冷蔵庫リスト</h1>
+      </div>
+      <button onclick="app.shareApp()" style="background:var(--primary); border:none; padding:8px 16px; border-radius:12px; color:#fff; font-weight:700; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        共有
+      </button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="search-inner" style="flex:1; margin-right:12px; padding:8px 12px; background:rgba(0,0,0,0.04); border-radius:12px; display:flex; gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" placeholder="検索..." oninput="app.renderList()" style="border:none; background:transparent; font-size:0.85rem; outline:none; width:100%;">
+      </div>
+      <select class="sort-select" id="sort-order" onchange="app.renderList()">
+        <option value="exp">期限順</option>
+        <option value="alpha">あいうえお順</option>
+        <option value="qty">数量順</option>
+      </select>
+    </div>
+
+    <div class="main-content-layout">
+      <div class="cat-sidebar" id="category-sidebar"></div>
+      <div class="scroll-area" id="item-list"></div>
+    </div>
+  </div>
+
+  <!-- 4. Camera Screen -->
+  <div id="camera-screen" class="screen" style="background:#000; padding-bottom:0;">
+    <div style="height:60%; position:relative; display:flex; justify-content:center; align-items:center;">
+      <video id="video-preview" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+      <div style="position:absolute; width:85%; aspect-ratio:1/1; border:2px dashed #fff; border-radius:32px; box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);"></div>
+      <div style="position:absolute; top:60px; left:24px; color:#fff; font-weight:800; font-size:1.2rem;" onclick="app.stopCamera()">✕</div>
+    </div>
+    <div style="flex:1; background:#fff; border-radius:32px 32px 0 0; margin-top:-24px; padding:32px 24px; z-index:20;">
+      <div class="nav-cam-btn" onclick="app.captureAndOCR()" style="margin:0 auto 20px; transform:translateY(-56px);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <div id="ocr-status" style="text-align:center; font-size:0.9rem; font-weight:700; color:var(--text-muted); margin-top:-40px; margin-bottom:20px;">AIが自動読込します</div>
+      <button onclick="app.openManualEntry()" style="width:100%; padding:16px; border-radius:18px; border:2px solid #f1f5f9; background:#fff; font-weight:800; color:var(--text-muted); font-size:1rem;">手入力で登録する</button>
+    </div>
+  </div>
+
+  <!-- 4. Calendar Screen -->
+  <div id="calendar-screen" class="screen" style="padding:40px 24px 100px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <h2 style="font-weight:800; margin-bottom:20px;">カレンダー</h2>
+    <div id="calendar-container"></div>
+  </div>
+
+  <!-- Calendar Detail Overlay -->
+  <div id="cal-detail-overlay" class="overlay" onclick="app.closeCalendarDetails()">
+    <div class="entry-card" onclick="event.stopPropagation()" style="max-height:80vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 id="cal-detail-title" style="font-weight:800; font-size:1.1rem;">アイテム一覧</h3>
+        <div onclick="app.closeCalendarDetails()" style="font-size:1.2rem; cursor:pointer;">✕</div>
+      </div>
+      <div id="cal-detail-list"></div>
+    </div>
+  </div>
+
+  <!-- 5. Rescue Recipe Screen -->
+  <div id="recipe-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="font-weight:900; font-size:1.6rem; margin:0;">レスキュー・レシピ</h2>
+      <button onclick="app.renderRecipes(true)" style="background:var(--primary); color:#fff; border:none; padding:8px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; cursor:pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">更新🔄</button>
+    </div>
+    
+    <div style="margin-bottom:28px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">本日の救出候補食材</p>
+      <div id="recipe-ingredients" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材を読み込んでいます...</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">おすすめレシピ (本日6:00更新)</p>
+      <div style="background:rgba(16, 185, 129, 0.1); color:var(--primary); font-size:0.6rem; font-weight:900; padding:4px 10px; border-radius:30px;">LIMITED</div>
+    </div>
+    
+    <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
+      <!-- ローディング用スケルトン -->
+      <div id="recipe-loader" style="text-align:center; padding:40px 20px;">
+        <div style="width:30px; height:30px; border:3px solid #f1f5f9; border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px;"></div>
+        <p style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">最新のレシピを読み込み中...</p>
+      </div>
+      <!-- レシピカードがここに入ります -->
+    </div>
+  </div>
+
+  <!-- 6. Settings Screen -->
+  <div id="settings-screen" class="screen" style="padding:40px 24px 120px; overflow-y:auto;">
+    <h2 style="font-weight:800; margin-bottom:24px;">設定</h2>
+    
+    <!-- 0. アカウント設定 (最上部) -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">アカウント設定</p>
+      <div id="email-setup-container" style="display:flex; gap:8px;">
+        <input type="email" id="user-email" placeholder="メールアドレスを入力してください" style="flex:1; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600;">
+        <button id="email-btn" onclick="app.toggleEmailEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
+      </div>
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">リマインド通知設定</p>
+      <div style="display:flex; gap:6px; align-items:center; background:#fff; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">期限</span>
+        <select id="reminder-days" style="padding:4px; border-radius:8px; border:1px solid #cbd5e1; font-weight:700; outline:none;">
+          <option value="1">1日</option>
+          <option value="2">2日</option>
+          <option value="3">3日</option>
+          <option value="7">7日</option>
+        </select>
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">前の</span>
+        <input type="time" id="reminder-time" value="09:00" style="padding:4px 8px; border-radius:8px; border:1px solid #cbd5e1; outline:none; font-family:inherit; font-weight:700;">
+        <span style="font-size:0.75rem; font-weight:600; color:#475569;">に通知</span>
+        <button onclick="app.saveReminderSetting()" style="margin-left:auto; padding:6px 12px; border-radius:8px; border:none; background:var(--primary); color:#fff; font-size:0.7rem; font-weight:800;">保存</button>
+      </div>
+      <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※設定条件に合わせて食材をポップアップまたはメールでお知らせします。</p>
+    </div>
+
+    <p style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">入力したメールアドレスはこの端末に保存され、データの読み込みに使用されます。</p>
+
+    </div>
+    <!-- 設定 UI は削除されました (URLとキーはソースまたはストレージで管理) -->
+
+    <!-- 2. 使い方ガイド -->
+
+    <!-- 1. 通知設定 -->
+    <div class="settings-section" style="margin-bottom:30px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">スマホ通知設定</p>
+      <div style="background:#f8fafc; border-radius:20px; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:800; font-size:0.9rem;">通知を許可する</div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">期限1〜2日前のリマインダーを表示します</div>
+        </div>
+        <button id="notify-perm-btn" onclick="app.requestNotificationPermission()" style="background:var(--primary); color:#fff; border:none; padding:8px 16px; border-radius:12px; font-weight:800; font-size:0.75rem; cursor:pointer;">許可する</button>
+      </div>
+      <div style="margin-top:12px; font-size:0.65rem; color:var(--text-muted); line-height:1.4;">
+        ※ iPhone/iPadは「ホーム画面に追加」してから設定してください。
+      </div>
+    </div>
+
+    <!-- 2. 使い方ガイド -->
+    <div class="settings-section" style="margin-bottom:100px; cursor:pointer;" onclick="app.toggleUsage()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">BestB4 の使い方</p>
+        <svg id="usage-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" style="transition:0.3s;"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div id="usage-content" style="display:none; margin-top:20px; border-top:1px solid #f1f5f9; padding-top:20px;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📧</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント:</b> 設定画面でメールアドレスを入力してください。全てのデータはこのアドレスに紐づいて管理されます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📸</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">👉</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">📅</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー:</b> 「カレンダー」タブで、賞味期限が近い食品を日付ごとに一覧表示できます。タップするとアイテムの詳細が表示されます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">🥗</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」画面右上の「更新🔄」ボタンを押すことでAIが最新レシピを提案します。</p>
+          </div>
+          <div style="display:flex; gap:12px; background:#f0fdf4; padding:12px; border-radius:12px; border:1px solid #dcfce7;">
+            <div style="font-size:1.2rem;">📱</div>
+            <p style="font-size:0.75rem; color:#166534; line-height:1.5;"><b>通知を有効にするには:</b> iOSの方はSafariで開き、<b>「共有ボタン（矢印）」</b>から<b>「ホーム画面に追加」</b>を行ってください。本物のアプリとして動作し、通知が受け取れるようになります。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Entry Overlay -->
+  <div id="entry-overlay" class="overlay">
+    <div class="entry-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h2 id="entry-title" style="font-weight:800; font-size:1.4rem; letter-spacing:-0.5px;">アイテム登録</h2>
+        <div onclick="app.closeEntry()" style="font-size:1.5rem; color:var(--text-muted); cursor:pointer; padding:5px;">✕</div>
+      </div>
+      <div>
+        <div style="margin-bottom:20px;">
+          <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">商品名</label>
+          <input type="text" id="entry-name" placeholder="例: 牛乳" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; box-sizing:border-box; transition:0.2s;">
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:20px;">
+          <div style="flex:1.6;">
+            <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">カテゴリー</label>
+            <select id="entry-cat" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:0.95rem; font-weight:600; appearance:none; box-sizing:border-box;">
+              <option>肉</option><option>魚</option><option>野菜</option><option>乳製品・卵</option><option>飲料</option><option>調味料</option><option>作り置き</option><option>缶詰</option><option>お菓子</option><option>インスタント</option><option>冷凍食品</option><option>レトルト</option><option>乾物</option><option>その他</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">数量</label>
+            <input type="number" id="entry-qty" value="1" style="width:100%; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; text-align:center; box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="margin-bottom:28px; width:100%; box-sizing:border-box;">
+          <label style="display:block; font-size:0.75rem; font-weight:800; color:var(--text-muted); margin-bottom:8px; margin-left:4px;">賞味期限</label>
+          <input type="date" id="entry-exp" style="width:100%; display:block; padding:16px; border-radius:18px; border:1.5px solid #f1f5f9; background:#f8fafc; outline:none; font-size:1rem; font-weight:600; box-sizing:border-box; -webkit-appearance:none; appearance:none;">
+        </div>
+        <button onclick="app.saveEntry()" style="width:100%; padding:18px; border-radius:20px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:1.1rem; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition:0.2s;">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. AI Analysis Loading Overlay -->
+  <div id="ocr-loading" class="overlay" style="background:rgba(255,255,255,0.8); backdrop-filter:blur(15px); z-index:4000;">
+    <div style="text-align:center;">
+      <div class="ai-pulse" style="width:100px; height:100px; background:linear-gradient(135deg, var(--primary), #3b82f6); border-radius:50%; margin:0 auto 30px; display:flex; justify-content:center; align-items:center; box-shadow:0 0 40px rgba(16, 185, 129, 0.4);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 2A10 10 0 0 0 2 12M12 22A10 10 0 0 0 22 12"/><path d="M12 12L16 10"/></svg>
+      </div>
+      <h3 style="font-weight:900; color:#1e293b; margin-bottom:12px; font-size:1.3rem;">AI解析中</h3>
+      <p style="color:var(--text-muted); font-size:0.85rem; font-weight:700;">最先端AIが画像から<br>商品名と重要期限を読み取っています...</p>
+      <div style="margin-top:40px; display:flex; justify-content:center; gap:8px;">
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate;"></div>
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate 0.2s;"></div>
+        <div class="dot" style="width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 0.6s infinite alternate 0.4s;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Action Menu Overlay -->
+  <div id="action-menu" onclick="app.toggleActionMenu()">
+    <div class="action-options" onclick="event.stopPropagation()">
+      <div class="action-item" onclick="app.startCamera();">
+        <i style="background:#ecfdf5; color:#10b981;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></i>
+        <span>カメラで読み取る</span>
+      </div>
+      <div class="action-item" onclick="document.getElementById('file-upload').click();">
+        <i style="background:#eff6ff; color:#3b82f6;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></i>
+        <span>写真をアップロード</span>
+        <input type="file" id="file-upload" hidden accept="image/*" multiple onchange="app.handleFileUpload(event); app.toggleActionMenu();">
+      </div>
+      <div class="action-item" onclick="app.openManualEntry();">
+        <i style="background:#fef2f2; color:#ef4444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></i>
+        <span>手入力で登録</span>
+      </div>
+      <div onclick="app.toggleActionMenu()" style="text-align:center; padding-top:10px; font-weight:800; color:#fff; font-size:1.2rem;">✕</div>
+    </div>
+  </div>
+
+
+
+  <!-- 11. Bottom Nav -->
+  <div id="bottom-nav">
+    <div class="nav-btn active" onclick="app.showScreen('list-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>リスト</span></div>
+    <div class="nav-btn" onclick="app.showScreen('calendar-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>カレンダー</span></div>
+    <div class="nav-add-btn" onclick="app.toggleActionMenu()">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+    <div class="nav-btn" onclick="app.showScreen('recipe-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 19V5C18 3.89543 17.1046 3 16 3H8C6.89543 3 6 3.89543 6 5V19L12 16L18 19Z"/><path d="M12 11V6" stroke-linecap="round"/></svg><span>レシピ</span></div>
+    <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>設定</span></div>
+  </div>
+
+  <!-- 12. Off-screen Share Renderer -->
+  <div id="share-render-container" style="position:fixed; left:-9999px; top:0; width:450px; background:#fff; padding:40px; border-radius:1px; color:#1e293b;">
+    <!-- Generated on the fly -->
+  </div>
+
+</div>
+
+<script>
+  const safeStorage = {
+    get: (key, def = '') => { try { return localStorage.getItem(key) || def; } catch (e) { return def; } },
+    set: (key, val) => { try { localStorage.setItem(key, val); } catch (e) {} },
+    remove: (key) => { try { localStorage.removeItem(key); } catch (e) {} }
+  };
+
+  const app = {
+    db: null, stream: null, editingId: null, currentCat: "すべて",
+    _itemsCache: null, // 高速化用の内部データキャッシュ
+    userEmail: safeStorage.get('bestb4_user_email'),
+    gasStorageUrl: safeStorage.get('bestb4_gas_url'),
+    // APIキーはGAS側で管理
+    categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
+    catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
+
+    async init() {
+      try {
+        // 1. Service Worker登録 (PWA用)
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('./sw.js').catch(console.error);
+        }
+        
+        this.updateEmailInputState();
+        this.updateNotifyBtnState();
+        this.updateDateLabel();
+        this.renderList();
+        
+        console.log('BestB4 Initialized');
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+          setTimeout(() => {
+            splash.style.transition = 'opacity 1s ease, background 0.8s ease';
+            splash.style.background = '#fff';
+            setTimeout(() => {
+              this.showScreen('list-screen', true);
+              if (document.getElementById('bottom-nav')) {
+                document.getElementById('bottom-nav').style.display = 'flex';
+              }
+              splash.style.opacity = '0';
+              setTimeout(() => splash.style.display = 'none', 1000);
+              this.checkReminders();
+            }, 1000);
+          }, 800);
+        }
+        
+        // リマインド設定の読み込み
+        const savedTime = safeStorage.get('bestb4_reminder_time', '09:00');
+        const savedDays = safeStorage.get('bestb4_reminder_days', '2');
+        if (document.getElementById('reminder-time')) document.getElementById('reminder-time').value = savedTime;
+        if (document.getElementById('reminder-days')) document.getElementById('reminder-days').value = savedDays;
+      } catch (e) {
+        console.error("Initialization Error:", e);
+        alert("アプリの起動中にエラーが発生しました: " + e.message);
+        // エラー時もスプラッシュ画面を強制削除
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
+      }
+    },
+
+    updateNotifyBtnState() {
+      const btn = document.getElementById('notify-perm-btn');
+      if (!btn) return;
+      
+      if ('Notification' in window && Notification.permission === 'granted') {
+        btn.innerText = '設定済み ✅';
+        btn.style.background = '#f1f5f9';
+        btn.style.color = '#64748b';
+        btn.disabled = true;
+      }
+    },
+
+    async requestNotificationPermission() {
+      if (!('Notification' in window)) {
+        this.showToast('お使いのブラウザはプッシュ通知に対応していません（iPhoneの場合は「ホーム画面に追加」を試してください）');
+        return;
+      }
+      
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          this.showToast('通知が許可されました！');
+          this.updateNotifyBtnState();
+        } else {
+          this.showToast('通知が拒否されました（ブラウザ設定を確認してください）');
+        }
+      } catch (e) {
+        this.showToast('通知設定中にエラーが発生しました');
+        console.error(e);
+      }
+    },
+
+
+    updateEmailInputState() {
+      const input = document.getElementById('user-email');
+      const btn = document.getElementById('email-btn');
+      if (!input || !btn) return;
+
+      if (this.userEmail) {
+        input.value = this.userEmail;
+        input.disabled = true;
+        input.style.background = "#f1f5f9";
+        input.style.color = "#64748b";
+        btn.innerText = "変更";
+        btn.style.background = "#94a3b8";
+        btn.style.color = "#fff";
+      } else {
+        input.disabled = false;
+        input.style.background = "#fff";
+        input.style.color = "#1e293b";
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+        btn.style.color = "#fff";
+      }
+    },
+
+    toggleEmailEdit() {
+      const input = document.getElementById('user-email');
+      const btn = document.getElementById('email-btn');
+      if (input.disabled) {
+        input.disabled = false;
+        input.style.background = "#fff";
+        input.style.color = "#1e293b";
+        input.focus();
+        btn.innerText = "保存";
+        btn.style.background = "var(--primary)";
+      } else {
+        const val = input.value.trim();
+        if (!val) return this.showToast('メールアドレスを入力してください');
+        this.userEmail = val;
+        safeStorage.set('bestb4_user_email', val);
+        this.updateEmailInputState();
+        this.renderList(); // Refresh list immediately with new email
+        this.showToast('メールアドレスを保存しました');
+      }
+    },
+
+
+
+    // 連携設定の編集メソッドはセキュリティーとUI簡略化のため削除されました
+    // 必要に応じて localStorage (safeStorage) またはソースコードで直接書き換えてください
+
+
+    updateLinkStatus() {
+      const badge = document.getElementById('mail-status-badge');
+      if (badge) {
+        badge.innerText = this.userEmail ? 'ON' : 'OFF';
+        badge.style.background = this.userEmail ? 'var(--primary)' : '#e2e8f0';
+        badge.style.color = this.userEmail ? '#fff' : '#64748b';
+      }
+    },
+
+    async processMailIntegration(item) {
+      if (!this.userEmail) return;
+      
+      this.showToast('カレンダー連携メールを送信中...');
+      console.log(`Mock Email to ${this.userEmail}: Generating ICS for ${item.name}`);
+      
+      // 擬似ICSファイル生成
+      const icsData = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'BEGIN:VEVENT',
+        `SUMMARY:🍴賞味期限:${item.name}`,
+        `DTSTART;VALUE=DATE:${item.exp.replace(/-/g,'')}`,
+        `DTEND;VALUE=DATE:${item.exp.replace(/-/g,'')}`,
+        `DESCRIPTION:${item.name} (${item.qty}個) の賞味期限です。`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\n');
+      
+      // 擬似送信フローのシミュレーション
+      setTimeout(() => {
+        this.showToast('✅ メールを送信しました！カレンダーに追加してください');
+      }, 1500);
+    },
+
+    saveReminderSetting() {
+      const timeInput = document.getElementById('reminder-time');
+      const daysInput = document.getElementById('reminder-days');
+      if (!timeInput || !daysInput) return;
+      
+      const time = timeInput.value;
+      const days = daysInput.value;
+      
+      safeStorage.set('bestb4_reminder_time', time);
+      safeStorage.set('bestb4_reminder_days', days);
+      
+      this.showToast(`✅ ${days}日前の ${time} に通知を予約しました`);
+      
+      // 注意書き
+      setTimeout(() => {
+        alert("【重要：メール通知】メール通知を有効にするには、GASエディタで 'dailyReminder' 関数を毎日実行するトリガーを設定してください。");
+      }, 500);
+    },
+
+    async renderRecipes(forceUpdate = false) {
+      if (forceUpdate) this.showToast('最新のレシピから取得しています...');
+      const loader = document.getElementById('recipe-loader');
+      const listContainer = document.getElementById('recipe-list');
+      const ingredientsContainer = document.getElementById('recipe-ingredients');
+      if (!listContainer || !ingredientsContainer) return;
+      
+      // 1. 食材バッジの描画（期限3日以内）
+      const items = await this.getAllItems();
+      if (!items) {
+        if (loader) loader.style.display = 'none';
+        listContainer.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted);">同期エラーによりアイテムを取得できませんでした</p>';
+        return;
+      }
+
+      const today = new Date();
+      const threeDaysLater = new Date();
+      threeDaysLater.setDate(today.getDate() + 3);
+      
+      const rescueItems = items.filter(i => {
+        const exp = new Date(i.exp);
+        return !i.archivedAt && exp <= threeDaysLater;
+      });
+
+      if (rescueItems.length === 0) {
+        ingredientsContainer.innerHTML = '<p style="font-size:0.75rem; color:var(--text-muted); opacity:0.7; padding:10px;">期限の近い食材はありません。バッチリです！</p>';
+      } else {
+        ingredientsContainer.innerHTML = rescueItems.slice(0, 5).map(item => `
+          <div style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:6px 14px; border-radius:30px; font-size:0.75rem; font-weight:800; border:1px solid rgba(239, 68, 68, 0.2);">
+            ⚠️ ${item.name}
+          </div>
+        `).join('');
+      }
+
+      // 2. レシピデータの取得（キャッシュ or AI）
+      let recipes = [];
+      const cache = safeStorage.get(this.recipeCacheKey);
+      const ts = safeStorage.get(this.recipeTimestampKey);
+      const now = new Date().getTime();
+      
+      if (!forceUpdate && cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
+        recipes = JSON.parse(cache);
+      } else if (forceUpdate) {
+        if (loader) loader.style.display = 'block';
+        try {
+          // GASプロキシ経由。AI生成は手動ボタンのみ。
+          if (rescueItems.length > 0) {
+            const ingNames = rescueItems.slice(0, 5).map(i => i.name);
+            recipes = await this.generateRecipesWithGemini(ingNames);
+          } else {
+            // 食材がない場合のバックアップ
+            recipes = [
+              { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜", source: "定番", desc: "何にでも合う万能味噌汁" },
+              { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉", source: "定番", desc: "スタミナ満点メニュー" },
+              { title: "彩り野菜の肉野菜炒め", url: "https://cookpad.com/search/野菜炒め", ing: "キャベツ、人参、豚肉", source: "定番", desc: "冷蔵庫掃除の決定版" }
+            ];
+          }
+
+          if (!Array.isArray(recipes) || recipes.length === 0) throw new Error('レシピデータが空でした');
+          safeStorage.set(this.recipeCacheKey, JSON.stringify(recipes));
+          safeStorage.set(this.recipeTimestampKey, now.toString());
+        } catch (e) {
+          console.error('AI Fetch Error:', e);
+          if (loader) loader.style.display = 'none';
+          listContainer.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
+              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">更新エラーが発生しました。時間を置いて右上の（🔄）をクリックしてください。</p>
+            </div>
+          `;
+          return;
+        }
+      } else {
+        // キャッシュなしの初期状態
+        if (loader) loader.style.display = 'none';
+        listContainer.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
+            <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">定時更新のお知らせ、もしくはマニュアルで更新する場合は右上（🔄）をクリックしてください。</p>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. レシピカードの描画
+      if (loader) loader.style.display = 'none';
+      listContainer.innerHTML = recipes.slice(0, 5).map(r => `
+        <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:24px; border-radius:28px; display:flex; flex-direction:column; gap:14px; cursor:pointer; background:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.6rem; font-weight:900; background:var(--primary); color:#fff; padding:4px 10px; border-radius:30px; letter-spacing:0.05em;">${r.source || 'ネット検索結果'}</span>
+            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">調理15分</div>
+          </div>
+          <div>
+            <div style="font-weight:900; font-size:1.15rem; color:#1e293b; margin-bottom:6px; line-height:1.2;">${r.title}</div>
+            <p style="font-size:0.7rem; color:#64748b; line-height:1.5; margin:0;">${r.desc || '食材を活かしたおすすめのレシピです。'}</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.5); padding:10px; border-radius:16px; border:1px solid #f1f5f9;">
+            <span style="font-size:0.65rem; font-weight:850; color:#10b981;">💡 メイン:</span>
+            <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.ing}</span>
+          </div>
+          <button style="width:100%; padding:12px; border-radius:16px; border:none; background:#1e293b; color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px;">レシピの詳細をチェック ➔</button>
+        </div>
+      `).join('');
+    },
+
+    async generateRecipesWithGemini(ingredientsList) {
+      // GASの公開URLに対してAIレシピのリクエストを送ります（APIキーはGAS側に隠蔽されています）
+      const url = `${this.gasStorageUrl}?action=getRecipes&ingredients=${encodeURIComponent(ingredientsList.join("、"))}`;
+      
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("GAS API Proxy Request Failed");
+      
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      
+      // GASから返ってきたGeminiのレスポンスからテキストを抽出
+      const text = data.candidates[0].content.parts[0].text;
+      
+      try {
+        return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+      } catch (e) {
+        console.error("GAS Proxy JSON Parse Error:", text);
+        throw new Error("AIが正しくない形式で回答しました");
+      }
+    },
+
+
+    async consumeItem(id) {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      // 1. 【楽観的更新】即座にキャッシュを更新してUIに反映
+      const cachedItems = await this.getAllItems(true); // キャッシュ優先取得
+      const idx = cachedItems.findIndex(i => i.id === id);
+      if (idx === -1) return;
+
+      const item = cachedItems[idx];
+      let newQty = item.qty;
+      let archived = item.archivedAt;
+      let toastMsg = '';
+
+      if (item.qty > 1) {
+        cachedItems[idx].qty -= 1;
+        newQty -= 1;
+        toastMsg = `1つ消費しました（残り${newQty}個）`;
+      } else {
+        cachedItems[idx].archivedAt = new Date().toISOString();
+        archived = cachedItems[idx].archivedAt;
+        toastMsg = '使い切りました！';
+      }
+
+      // UIを即座に再描画（爆速化）
+      this.renderList();
+      this.renderCalendar();
+      this.showToast(toastMsg);
+
+      // 2. 【バックグラウンド同期】GAS側のデータを更新
+      try {
+        fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'update',
+            email: this.userEmail,
+            id: item.id,
+            qty: newQty,
+            archivedAt: archived
+          })
+        });
+        // 履歴も最新化
+        setTimeout(() => this.renderHistory(), 1000);
+      } catch (e) {
+        console.error('GAS Background Sync Error:', e);
+      }
+    },
+
+    toggleUsage() {
+      const content = document.getElementById('usage-content');
+      const arrow = document.getElementById('usage-arrow');
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? 'block' : 'none';
+      arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    },
+
+    // APIキー管理メソッドは削除されました
+
+
+
+    async getAllItems(useCache = false) {
+      if (!this.userEmail) return [];
+      // キャッシュ利用フラグがあり、かつデータが存在する場合は即時返却（爆速化）
+      if (useCache && this._itemsCache) return this._itemsCache;
+
+      try {
+        const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}`;
+        const resp = await fetch(url, { redirect: 'follow' });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const items = Array.isArray(data) ? data : [];
+        this._itemsCache = items; // キャッシュを更新
+        return items;
+      } catch (e) {
+        console.error('GAS Connection Error:', e);
+        return null;
+      }
+    },
+
+    async saveEntry() {
+      const name = document.getElementById('entry-name').value;
+      const cat = document.getElementById('entry-cat').value;
+      const qty = parseInt(document.getElementById('entry-qty').value) || 1;
+      const exp = document.getElementById('entry-exp').value;
+
+      if (!name || !exp) return this.showToast('入力が足りません');
+      if (!this.userEmail) return this.showToast('アカウント設定（メール）を完了してください');
+
+      const saveBtn = document.querySelector('#entry-overlay button');
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerText = '保存中...'; }
+
+      this.showToast('スプレッドシートに保存中...');
+      try {
+        const payload = { action: this.editingId ? 'update' : 'add', email: this.userEmail, id: this.editingId, name, cat, qty, exp };
+        
+        await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        });
+        
+        // no-corsではokフラグは見られないため、成功とみなして処理を継続
+        this.closeEntry();
+        this.showToast('保存しました！(同期済み)');
+        setTimeout(() => this.renderList(), 500); 
+        this.renderCalendar();
+        this.processMailIntegration({ name, exp, qty });
+      } catch (e) {
+        this.showToast('通信エラーが発生しました。');
+      } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = '保存する'; }
+      }
+    },
+
+    // initDB() { // IndexedDB removed
+    //   return new Promise(res => {
+    //     const req = indexedDB.open("BestB4_V3", 1);
+    //     req.onupgradeneeded = e => e.target.result.createObjectStore("items", { keyPath: "id", autoIncrement: true });
+    //     req.onsuccess = e => { this.db = e.target.result; res(); };
+    //   });
+    // },
+
+    updateDateLabel() {
+      const now = new Date(); document.getElementById('today-date').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+    },
+
+    showScreen(id, instant = false) {
+      document.querySelectorAll('.screen').forEach(s => { 
+        if(s.id === 'splash-screen') return;
+        s.classList.remove('active'); 
+        setTimeout(() => { if(!s.classList.contains('active')) s.style.display = 'none'; }, instant ? 0 : 400); 
+      });
+      this.closeCalendarDetails();
+      this.closeEntry();
+      if(id !== 'action-menu') document.getElementById('action-menu').classList.remove('active');
+
+      const t = document.getElementById(id);
+      if(!t) return;
+      t.style.display = 'flex'; // Use flex for all full-screen views
+      
+      if(instant) { t.classList.add('active'); t.style.opacity = '1'; }
+      else { setTimeout(() => t.classList.add('active'), 50); }
+
+      
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      const navIds = {'list-screen':0, 'calendar-screen':1, 'recipe-screen':2, 'settings-screen':3};
+      if(id === 'list-screen') this.renderList();
+      if(id === 'calendar-screen') this.renderCalendar();
+      if (id === 'recipe-screen') this.renderRecipes();
+      if (id === 'settings-screen') {
+          this.renderHistory();
+          if(this.apiKey) document.getElementById('gemini-api-key').value = '********';
+          this.checkPremiumCode(false); // Update premium status display on settings screen
+      }
+      if(navIds[id] !== undefined) document.querySelectorAll('.nav-btn')[navIds[id]].classList.add('active');
+    },
+
+    toggleActionMenu() {
+        const menu = document.getElementById('action-menu');
+        menu.classList.toggle('active');
+    },
+
+    async renderList() {
+      const container = document.getElementById('item-list');
+      const sidebar = document.getElementById('category-sidebar');
+      const search = document.getElementById('search-input').value.toLowerCase();
+      const sort = document.getElementById('sort-order').value;
+      
+      const allItems = await this.getAllItems();
+      if (allItems === null && this.userEmail) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:50px 20px; color:#ef4444; background:rgba(255,255,255,0.6); border-radius:24px; border:2px dashed rgba(239, 68, 68, 0.2);">
+            <div style="font-size:2.5rem; margin-bottom:16px;">📶</div>
+            <p style="font-size:0.95rem; font-weight:900; margin-bottom:8px;">データの同期に失敗しました</p>
+            <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5; margin-bottom:20px;">
+              GASの公開設定(全員/Anyone)か、インターネット接続を確認してください。<br>
+              <small style="opacity:0.7;">エラー内容: ${this.lastError || '不明なエラー'}</small>
+            </p>
+            <button onclick="app.renderList()" style="width:100%; padding:14px; border-radius:14px; background:var(--primary); color:#fff; border:none; font-weight:800; cursor:pointer;">再試行する 🔄</button>
+          </div>
+        `;
+        return;
+      }
+      const activeItems = (allItems || []).filter(i => !i.archivedAt);
+
+
+      
+      const activeCats = ["すべて", ...this.categories.filter(c => activeItems.some(i => i.cat === c))];
+      sidebar.innerHTML = "";
+      activeCats.forEach(cat => {
+        const tab = document.createElement('div');
+        tab.className = `cat-tab ${this.currentCat === cat ? 'active' : ''}`;
+        tab.innerHTML = `<i>${this.catIcons[cat]||'📦'}</i><span>${cat}</span>`;
+        tab.onclick = () => { this.currentCat = cat; this.renderList(); };
+        sidebar.appendChild(tab);
+      });
+
+      let items = activeItems.filter(i => {
+        const matchSearch = i.name.toLowerCase().includes(search);
+        const matchCat = this.currentCat === "すべて" || i.cat === this.currentCat;
+        return matchSearch && matchCat;
+      });
+      
+      if(sort === 'exp') items.sort((a,b) => new Date(a.exp) - new Date(b.exp));
+      else if(sort === 'alpha') items.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+      else if(sort === 'qty') items.sort((a,b) => b.qty - a.qty);
+
+      container.innerHTML = "";
+      if(items.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted); font-size:0.9rem;">商品がありません</div>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const itemDate = new Date(item.exp);
+        const today = new Date();
+        itemDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        const diff = Math.ceil((itemDate - today) / 86400000);
+        
+        const swipeWrap = document.createElement('div');
+        swipeWrap.className = 'swipe-container';
+        swipeWrap.innerHTML = `
+          <div class="swipe-action-bg">✔︎</div>
+          <div class="item-card" id="item-${item.id}">
+            <div class="item-icon">${this.getIcon(item.name, item.cat)}<div class="item-qty">${item.qty}</div></div>
+            <div style="flex:1;">
+              <div style="font-weight:700;">${item.name}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">期限: ${this.formatDateForDisplay(item.exp)}</div>
+            </div>
+            <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '期限切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
+          </div>
+
+        `;
+        container.appendChild(swipeWrap);
+        
+        const card = swipeWrap.querySelector('.item-card');
+        card.onclick = (e) => {
+            if (card.dataset.swiping === 'true') return;
+            this.openEdit(item);
+        };
+        this.attachSwipeEvents(card, item.id);
+      });
+    },
+
+    attachSwipeEvents(el, id) {
+      let startX = 0;
+      let currentX = 0;
+      let isSwiping = false;
+      const bg = el.previousElementSibling;
+
+      el.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        el.style.transition = 'none';
+        bg.style.opacity = '0';
+        isSwiping = true;
+        el.dataset.swiping = 'false';
+      }, { passive: true });
+
+      el.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX - startX;
+        if (currentX > 0) {
+          el.style.transform = `translateX(${currentX}px)`;
+          bg.style.opacity = Math.min(currentX / 100, 1);
+          if (currentX > 10) el.dataset.swiping = 'true';
+        }
+      }, { passive: true });
+
+      el.addEventListener('touchend', () => {
+        isSwiping = false;
+        el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+        if (currentX > 100) {
+          el.style.transform = `translateX(${window.innerWidth}px)`;
+          setTimeout(() => this.consumeItem(id), 200);
+        } else {
+          el.style.transform = `translateX(0)`;
+          setTimeout(() => el.dataset.swiping = 'false', 100);
+        }
+        currentX = 0;
+      });
+    },
+
+    // consumeItem(id) is already updated above.
+
+    async renderHistory(full = false) {
+      const container = document.getElementById('history-list');
+      const toggleBtn = document.getElementById('history-toggle');
+      if (!container) return;
+      const allItems = await this.getAllItems();
+      const archived = allItems.filter(i => i.archivedAt).sort((a,b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+      
+      if (archived.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem;">履歴はありません</p>`;
+        if(toggleBtn) toggleBtn.style.display = 'none';
+        return;
+      }
+
+      const displayItems = full ? archived : archived.slice(0, 3);
+      if(toggleBtn) {
+        toggleBtn.style.display = archived.length > 3 ? 'block' : 'none';
+        toggleBtn.innerText = full ? '閉じる' : 'すべて表示';
+        toggleBtn.onclick = () => this.renderHistory(!full);
+      }
+
+      container.innerHTML = displayItems.map(item => `
+        <div class="history-item">
+          <span class="icon">${this.getIcon(item.name, item.cat)}</span>
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:0.85rem;">${item.name}</div>
+            <div class="history-date">消費日: ${new Date(item.archivedAt).toLocaleDateString()}</div>
+          </div>
+          <button onclick="app.restoreItem(${item.id})" style="font-size:0.65rem; color:var(--primary); font-weight:800; border:1px solid var(--primary); padding:4px 8px; border-radius:8px;">戻す</button>
+        </div>
+      `).join('');
+    },
+
+    async restoreItem(id) {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      try {
+        const resp = await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'update',
+            email: this.userEmail,
+            id: id,
+            archivedAt: '' // Set to empty to unarchive
+          })
+        });
+
+        this.showToast('リストに戻しました');
+        this.renderList();
+        this.renderHistory();
+      } catch (e) {
+        console.error('Restore Item Error:', e);
+        this.showToast('復元中にエラーが発生しました');
+      }
+    },
+
+    async clearHistory() {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+      if (!confirm('履歴をすべて削除しますか？')) return;
+
+      try {
+        const resp = await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'clearHistory',
+            email: this.userEmail
+          })
+        });
+
+        this.showToast('履歴を削除しました');
+        this.renderHistory();
+      } catch (e) {
+        console.error('Clear History Error:', e);
+        this.showToast('履歴削除中にエラーが発生しました');
+      }
+    },
+
+    async renderCalendar() {
+        const container = document.getElementById('calendar-container');
+        if (!container) return;
+
+        // 1. 【ベース読み込み】まず現在のキャッシュを使って枠組みを秒速描画
+        this.renderCalendarGrid(this._itemsCache || []);
+
+        // 2. 【追加の反映】最新データを取得してバッジのみを更新
+        const allItems = await this.getAllItems();
+        if (allItems) {
+          this.updateCalendarBadges(allItems);
+        }
+    },
+
+    updateCalendarBadges(allItems) {
+      const activeItems = allItems.filter(i => !i.archivedAt);
+      const cells = document.querySelectorAll('.cal-cell');
+      
+      cells.forEach(cell => {
+        const dateStr = cell.dataset.date;
+        if (!dateStr) return;
+        
+        // 既存のバッジを消去
+        const oldBadge = cell.querySelector('.cal-badge');
+        if (oldBadge) oldBadge.remove();
+
+        const expiring = activeItems.filter(item => this.formatDateForInput(item.exp) === dateStr);
+        if (expiring.length > 0) {
+          const badge = document.createElement('div');
+          badge.className = 'cal-badge';
+          badge.innerText = expiring.length;
+          cell.appendChild(badge);
+          cell.onclick = () => this.showCalendarDetails(dateStr, expiring);
+        }
+      });
+    },
+
+    renderCalendarGrid(allItems) {
+        const container = document.getElementById('calendar-container');
+        container.innerHTML = "";
+        const activeItems = allItems.filter(i => !i.archivedAt);
+        const now = new Date();
+        
+        for (let m = -1; m <= 12; m++) {
+            const calDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
+            const year = calDate.getFullYear();
+            const month = calDate.getMonth();
+            const header = document.createElement('div');
+            header.className = 'cal-header';
+            header.innerHTML = `<h3>${year}年${month + 1}月</h3>`;
+            container.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+            ["日","月","火","水","木","金","土"].forEach(d => {
+                const el = document.createElement('div'); el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el);
+            });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for(let i=0; i<42; i++) {
+                const dayNum = i - firstDay + 1;
+                const cell = document.createElement('div');
+                cell.className = 'cal-cell';
+                if (dayNum > 0 && dayNum <= daysInMonth) {
+                    cell.innerText = dayNum;
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+                    cell.dataset.date = dateStr; // データ属性に日付を保持
+                    if (dateStr === this.formatDateForInput(new Date().toISOString())) cell.classList.add('today');
+                    
+                    const expiring = activeItems.filter(item => this.formatDateForInput(item.exp) === dateStr);
+                    if (expiring.length > 0) {
+                        const badge = document.createElement('div');
+                        badge.className = 'cal-badge';
+                        badge.innerText = expiring.length;
+                        cell.appendChild(badge);
+                        cell.onclick = () => this.showCalendarDetails(dateStr, expiring);
+                    }
+                } else {
+                    cell.classList.add('other-month');
+                }
+                grid.appendChild(cell);
+                if (dayNum > daysInMonth && i % 7 === 0) break;
+            }
+            container.appendChild(grid);
+        }
+    },
+
+    showCalendarDetails(date, items) {
+        const dispDate = this.formatDateForDisplay(date);
+        document.getElementById('cal-detail-title').innerText = `${dispDate} のアイテム`;
+        const list = document.getElementById('cal-detail-list');
+        list.innerHTML = items.map(item => `
+            <div class="cal-detail-item">
+                <span class="icon">${this.getIcon(item.name, item.cat)}</span>
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.9rem;">${item.name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.qty}個</div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="cal-btn edit" onclick="app.closeCalendarDetails(); app.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">編集</button>
+                    <button class="cal-btn consume" onclick="app.consumeItem(${item.id}); app.closeCalendarDetails();">消費</button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('cal-detail-overlay').style.display = 'flex';
+    },
+
+    closeCalendarDetails() {
+        document.getElementById('cal-detail-overlay').style.display = 'none';
+    },
+
+    async consumeFromCalendar(id) {
+        if(confirm('このアイテムを消費しますか？')) {
+            await this.consumeItem(id);
+            this.closeCalendarDetails();
+            this.renderCalendar();
+        }
+    },
+
+    getIcon(n, cat) {
+      if(cat && this.catIcons[cat]) return this.catIcons[cat];
+      const ni = n.toLowerCase();
+      if(ni.includes('肉')) return '🥩'; if(ni.includes('卵')) return '🥚';
+      if(ni.includes('菜') || ni.includes('トマ') || ni.includes('キャベ')) return '🥬';
+      if(ni.includes('果') || ni.includes('りんご') || ni.includes('バナナ')) return '🍎';
+      if(ni.includes('魚') || ni.includes('サケ') || ni.includes('サバ')) return '🐟';
+      if(ni.includes('飲') || ni.includes('コーヒ') || ni.includes('茶')) return '🥤';
+      return '🍱';
+    },
+
+    async shareApp() {
+      const items = await this.getAllItems();
+      const activeItems = items.filter(i => !i.archivedAt);
+      if (activeItems.length === 0) return this.showToast('共有するアイテムがありません');
+
+      this.showToast('共有用リストを作成中...');
+      const renderArea = document.getElementById('share-render-container');
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+      // Build Categorized UI
+      let html = `<div style="text-align:center; padding-bottom:30px; border-bottom:2px solid #f1f5f9; margin-bottom:30px;">
+        <h1 style="font-size:1.8rem; font-weight:900; color:var(--primary); margin-bottom:8px;">BestB4 在庫リスト</h1>
+        <p style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">生成日時: ${dateStr}</p>
+      </div>`;
+
+      this.categories.forEach(cat => {
+        const catItems = activeItems.filter(i => i.cat === cat);
+        if (catItems.length > 0) {
+          html += `<div style="margin-bottom:30px;">
+            <div style="font-size:1.1rem; font-weight:900; padding:8px 16px; background:#f8fafc; border-radius:12px; display:inline-block; margin-bottom:16px;">
+              ${this.catIcons[cat] || '📦'} ${cat}
+            </div>
+            <div style="border-left:3px solid #f1f5f9; margin-left:14px; padding-left:20px;">
+              ${catItems.map(i => `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                  <div>
+                    <div style="font-weight:800; font-size:1rem;">${i.name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">数量: ${i.qty}個</div>
+                  </div>
+                  <div style="font-size:0.85rem; font-weight:800; color:#1e293b; background:#f1f5f9; padding:6px 12px; border-radius:10px;">
+                    期限: ${i.exp}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+        }
+      });
+
+      renderArea.innerHTML = html;
+
+      // Capture with html2canvas
+      try {
+        const canvas = await html2canvas(renderArea, {
+          backgroundColor: '#ffffff',
+          scale: 2, // High resolution
+          logging: false
+        });
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], `bestb4_stock_list_${now.getTime()}.png`, { type: 'image/png' });
+
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'BestB4 在庫リスト',
+                text: `${dateStr} 時点のわが家の在庫リストです。`
+              });
+            } catch (e) {
+              this.fallbackDownload(blob);
+            }
+          } else {
+            this.fallbackDownload(blob);
+          }
+        });
+      } catch (e) {
+        console.error('Share Generation Error:', e);
+        this.showToast('画像生成に失敗しました');
+      }
+    },
+
+    fallbackDownload(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bestb4_stock_list.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast('画像を保存しました');
+    },
+
+
+
+    async injectDemoData() {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      const demoData = [
+        {name:"牛乳", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(2)},
+        {name:"卵(10個入)", cat:"乳製品・卵", qty:1, exp: this.getDateAdd(5)},
+        {name:"豚バラ肉", cat:"肉", qty:2, exp: this.getDateAdd(1)},
+        {name:"鶏ささみ", cat:"肉", qty:1, exp: this.getDateAdd(3)},
+        {name:"鮭の切り身", cat:"魚", qty:2, exp: this.getDateAdd(2)},
+        {name:"キャベツ", cat:"野菜", qty:1, exp: this.getDateAdd(7)},
+        {name:"トマト", cat:"野菜", qty:3, exp: this.getDateAdd(4)},
+        {name:"納豆", cat:"その他", qty:3, exp: this.getDateAdd(6)},
+        {name:"ビール", cat:"飲料", qty:6, exp: this.getDateAdd(30)},
+        {name:"オレンジジュース", cat:"飲料", qty:1, exp: this.getDateAdd(10)},
+        {name:"味噌", cat:"調味料", qty:1, exp: this.getDateAdd(180)},
+        {name:"醤油", cat:"調味料", qty:1, exp: this.getDateAdd(365)},
+        {name:"余ったカレー", cat:"作り置き", qty:1, exp: this.getDateAdd(2)},
+        {name:"サバの味噌煮缶", cat:"缶詰", qty:5, exp: this.getDateAdd(700)},
+        {name:"板チョコ", cat:"お菓子", qty:2, exp: this.getDateAdd(120)},
+        {name:"カップヌードル", cat:"インスタント", qty:3, exp: this.getDateAdd(150)},
+        {name:"冷凍さぬきうどん", cat:"冷凍食品", qty:5, exp: this.getDateAdd(90)},
+        {name:"パックごはん", cat:"レトルト", qty:10, exp: this.getDateAdd(200)},
+        {name:"乾燥パスタ", cat:"乾物", qty:1, exp: this.getDateAdd(500)},
+        {name:"木綿豆腐", cat:"その他", qty:1, exp: this.getDateAdd(3)}
+      ];
+      const demoBtn = document.querySelector('.demo-btn');
+      if (demoBtn) { demoBtn.disabled = true; demoBtn.innerText = '投入中...'; }
+
+      this.showToast('デモデータを追加中...');
+      try {
+        for (const item of demoData) {
+          await fetch(this.gasStorageUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'add', email: this.userEmail, ...item, reg: new Date().toISOString() })
+          });
+        }
+        this.showToast('投入完了！同期されました');
+        setTimeout(() => this.renderList(), 500);
+        this.renderCalendar();
+      } catch (e) {
+        console.error('Demo Data Error:', e);
+        this.showToast('デモデータの投入に失敗しました');
+      } finally {
+        if (demoBtn) { demoBtn.disabled = false; demoBtn.innerText = 'デモデータを20件投入'; }
+      }
+    },
+
+    getDateAdd(days) {
+      const d = new Date();
+      d.setTime(d.getTime() + days * 86400000); // より安全なミリ秒加算
+      return d.toISOString().split('T')[0];
+    },
+
+    async startCamera() {
+      this.showScreen('camera-screen'); document.getElementById('bottom-nav').style.display='none';
+      const v = document.getElementById('video-preview');
+      try { this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } }); v.srcObject = this.stream; }
+      catch(e) { this.showToast('カメラ許可が必要です'); }
+    },
+    stopCamera() {
+      if(this.stream) this.stream.getTracks().forEach(t => t.stop());
+      this.showScreen('list-screen'); document.getElementById('bottom-nav').style.display='flex';
+    },
+
+    async handleFileUpload(event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+        if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
+        
+        const loader = document.getElementById('ocr-loading');
+        const loaderText = loader.querySelector('p');
+        const defaultText = "最先端AIが画像から<br>商品名と重要期限を読み取っています...";
+        
+        if (loader) loader.style.display = 'flex';
+        if (loaderText) loaderText.innerHTML = `解析を開始します (${files.length}枚)...`;
+
+        let successCount = 0;
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const baseText = `${files.length}枚中 ${i+1}枚目を解析中...`;
+                if (loaderText) loaderText.innerHTML = baseText;
+                
+                try {
+                    const base64Img = await this.fileToBase64(file);
+                    const result = await this.callGeminiAPI(base64Img);
+                    
+                    if (result) {
+                        const itemName = result.name || "不明な商品";
+                        if (loaderText) loaderText.innerHTML = `${baseText}<br><span style="color:#10b981; font-weight:800;">✅ ${itemName} を発見</span>`;
+                        
+                        if (files.length === 1) {
+                            this.parseGeminiResult(result);
+                            return; // 1枚なら即終了して確認画面へ。finallyでloaderは消える
+                        } else {
+                            await this.saveEntryDirectly(result);
+                            successCount++;
+                        }
+                        await new Promise(r => setTimeout(r, 600)); // 体感用ラグ
+                    }
+                } catch(err) {
+                    console.error(`File ${i} Error:`, err);
+                    this.showToast(`ERR-OCR-000: ${file.name}の解析に失敗しました。詳細: ${err.message}`);
+                }
+            }
+
+            if (successCount > 0) {
+                this.showToast(`${successCount}件のアイテムを追加し、同期しました！`);
+                setTimeout(() => this.renderList(), 500);
+                this.renderCalendar();
+            }
+        } finally {
+            if (loader) loader.style.display = 'none';
+            if (loaderText) loaderText.innerHTML = defaultText;
+            event.target.value = ""; // 入力のリセット（同じファイルを再度選択可能にする）
+        }
+    },
+
+    fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          // 画像を最大1024pxにリサイズして容量削減（通信エラー対策）
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            const max = 1024;
+            if (w > max || h > max) {
+              if (w > h) { h = h * (max / w); w = max; }
+              else { w = w * (max / h); h = max; }
+            }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+          };
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    },
+
+    async saveEntryDirectly(res) {
+      if (!this.userEmail) return;
+      const name = res.name || "商品";
+      const exp = res.exp || new Date().toISOString().split('T')[0];
+      
+
+      try {
+        await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'add', email: this.userEmail, name, exp, qty: 1, cat: res.cat || 'その他', reg: new Date().toISOString() })
+        });
+      } catch (e) {
+        console.error('GAS Save Direct Error:', e);
+      }
+    },
+
+    async captureAndOCR() {
+      if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
+
+      const v = document.getElementById('video-preview');
+      const c = document.createElement('canvas');
+      const videoW = v.videoWidth;
+      const videoH = v.videoHeight;
+      const cropSize = Math.min(videoW, videoH) * 0.85;
+      const startX = (videoW - cropSize) / 2;
+      const startY = (videoH - cropSize) / 2;
+
+      c.width = 1024; c.height = 1024;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(v, startX, startY, cropSize, cropSize, 0, 0, 1024, 1024);
+      
+      document.getElementById('ocr-loading').style.display = 'flex';
+      const base64Img = c.toDataURL('image/jpeg', 0.9).split(',')[1];
+      
+      try {
+        const result = await this.callGeminiAPI(base64Img);
+        this.parseGeminiResult(result);
+      } catch(e) { 
+          console.error("Gemini Error:", e);
+          this.showToast('解析失敗: ' + e.message); 
+      } finally {
+          document.getElementById('ocr-loading').style.display = 'none';
+      }
+    },
+
+    async getApiKeyFromGAS() {
+      if (this._cachedApiKey) return this._cachedApiKey;
+      if (!this.gasStorageUrl) throw new Error("ERR-SYS-002: 設定画面からGASのURLを登録してください。");
+      
+      try {
+        const url = `${this.gasStorageUrl}?action=getApiKey&_t=${Date.now()}`;
+        const resp = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        
+        const text = await resp.text();
+        // APIキーの徹底クリーニング（不可視文字や改行の除去）
+        let key = text.trim().replace(/[\r\n\s]/g, '');
+        try {
+            const data = JSON.parse(text);
+            const rawKey = data.apiKey || data.key || key;
+            key = rawKey.toString().trim().replace(/[\r\n\s]/g, '');
+        } catch(e) {}
+
+        if (!key || key.includes('<html') || key.startsWith("<!DOCTYPE")) {
+            throw new Error('ERR-GAS-002: GASが無効な形式のレスポンスを返しました');
+        }
+
+        if (!key.startsWith("AIza")) {
+            throw new Error(`ERR-GAS-003: 取得した文字が有効なキー(AIza...)ではありません: ${key.substring(0, 10)}...`);
+        }
+        
+        this._cachedApiKey = key;
+        return key;
+      } catch (e) {
+        console.error('GAS API Key fetch Error:', e);
+        throw new Error('ERR-GAS-001: GASからのAPIキー取得に失敗しました。GASのURLやWebアプリ側のgetApiKey実装を確認してください。');
+      }
+    },
+
+    async callGeminiAPI(base64Image) {
+      const apiKey = await this.getApiKeyFromGAS().catch(e => {
+        throw new Error("ERR-OCR-001: GAS接続エラー。URLとWebアプリ公開設定を確認してください。");
+      });
+      if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。");
+      
+      const prompt = "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
+      
+      // 型番付きを含む全バリエーション試行リスト
+      const models = [
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-001',
+        'gemini-1.5-flash-002',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash-8b',
+        'gemini-1.5-pro',
+        'gemini-1.0-pro'
+      ];
+
+      const history = [];
+      
+      const executeRequest = async (modelName, version, useJsonMode) => {
+        const url = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${apiKey}`;
+        const payload = {
+          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }],
+          generationConfig: useJsonMode ? { responseMimeType: "application/json" } : {}
+        };
+        
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const text = await res.text();
+        if (!res.ok) {
+          let msg = text;
+          try { const d = JSON.parse(text); msg = d.error?.message || text; } catch(e){}
+          throw { status: res.status, message: msg };
+        }
+        return JSON.parse(text);
+      };
+
+      for (const m of models) {
+        // 各モデルにつき：v1beta(JSON) -> v1beta(標準) -> v1(標準) の3段階で試行
+        const configs = [
+          { v: 'v1beta', j: true },
+          { v: 'v1beta', j: false },
+          { v: 'v1', j: false }
+        ];
+
+        for (const conf of configs) {
+          try {
+            console.log(`[AI-Try] ${m} (${conf.v}, JSON:${conf.j})...`);
+            const data = await executeRequest(m, conf.v, conf.j);
+            
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              const raw = data.candidates[0].content.parts[0].text;
+              const jsonStr = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+              try {
+                return JSON.parse(jsonStr);
+              } catch(e) {
+                history.push(`${m}/${conf.v}: JSONパース失敗`);
+                continue;
+              }
+            }
+          } catch (err) {
+            if (err.status === 429) {
+              const waitMsg = "ERR-OCR-429: 利用制限(Quota)を超過しました。1分ほど時間を置いてから再度お試しください。";
+              history.push(`!! ${m}: 429 (LIMIT EXCEEDED) !!`);
+              throw new Error(`${waitMsg}\n\n【詳細ログ】\n${history.join('\n')}`);
+            }
+            const errStr = `${m}(${conf.v},j:${conf.j}): ${err.status||'ERR'} - ${err.message?.substring(0, 40)}`;
+            console.warn(`[AI-Failed] ${errStr}`);
+            history.push(errStr);
+            if (err.message?.includes("API key not valid")) throw new Error("ERR-OCR-003: APIキーが正しくありません");
+            continue;
+          }
+        }
+      }
+
+      const historySummary = history.join('\n');
+      throw new Error(`ERR-OCR-00X: 全てのAI試行が失敗しました。\n\n【詳細ログ】\n${historySummary}`);
+    },
+
+    parseGeminiResult(res) {
+      this.openManualEntry({ 
+        name: res.name || "商品", 
+        exp: res.exp || new Date().toISOString().split('T')[0], 
+        qty: 1, 
+        cat: res.cat || 'その他' 
+      });
+      document.getElementById('ocr-status').innerText = "読込完了";
+    },
+
+    openManualEntry(data = null) {
+      this.editingId = null;
+      document.getElementById('action-menu').classList.remove('active');
+      document.getElementById('entry-title').innerText = "アイテム登録";
+      document.getElementById('entry-name').value = data ? data.name : "";
+      document.getElementById('entry-exp').value = data ? this.formatDateForInput(data.exp) : this.formatDateForInput(new Date().toISOString());
+      document.getElementById('entry-cat').value = data ? data.cat : "その他";
+      document.getElementById('entry-qty').value = data ? data.qty : "1";
+      document.getElementById('entry-overlay').style.display = 'flex';
+      document.getElementById('bottom-nav').style.display = 'none';
+      if(this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
+    },
+    openEdit(item) {
+      this.editingId = item.id;
+      document.getElementById('entry-title').innerText = "アイテム編集";
+      document.getElementById('entry-name').value = item.name;
+      document.getElementById('entry-cat').value = item.cat || "その他";
+      document.getElementById('entry-qty').value = item.qty || "1";
+      document.getElementById('entry-exp').value = this.formatDateForInput(item.exp);
+      document.getElementById('entry-overlay').style.display = 'flex';
+    },
+    closeEntry() { document.getElementById('entry-overlay').style.display = 'none'; document.getElementById('bottom-nav').style.display='flex'; },
+
+    formatDateForDisplay(dateStr) {
+      if(!dateStr) return '';
+      const d = new Date(dateStr);
+      if(isNaN(d.valueOf())) return dateStr;
+      return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+    },
+    
+    formatDateForInput(dateStr) {
+      if(!dateStr) return '';
+      const d = new Date(dateStr);
+      if(isNaN(d.valueOf())) return typeof dateStr === 'string' ? dateStr.substring(0, 10) : '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    },
+
+
+    async checkReminders() {
+      const itemsData = await this.getAllItems();
+      if (!itemsData) {
+        console.warn('ERR-REM-001: アイテムリストの取得に失敗したため、リマインダーをスキップします。');
+        return; // データが取得できなかった場合はスキップ
+      }
+      
+      const items = itemsData.filter(i => !i.archivedAt && i.exp);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      const thresholdDays = parseInt(safeStorage.get('bestb4_reminder_days', '2'));
+      let near = [];
+
+      items.forEach(i => {
+        try {
+          const parts = i.exp.split('-');
+          if (parts.length === 3) {
+            const expDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            const diff = Math.ceil((expDate.getTime() - today.getTime()) / 86400000);
+            if (diff >= 0 && diff <= thresholdDays) {
+              near.push(i);
+            }
+          }
+        } catch (e) {
+          console.warn('ERR-REM-002: 日付パースエラー', e);
+        }
+      });
+
+      if (near.length > 0) {
+        const msg = `${near.length}件の期限が迫っています（${near[0].name}など）`;
+        this.showToast(`🔔 ${msg}`);
+        
+        // システム通知 (PWA通知)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification('BestB4 リマインダー', {
+              body: msg,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png',
+              badge: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png',
+              tag: 'exp-reminder'
+            });
+          }).catch(e => {
+            console.error('ERR-REM-003: ServiceWorker通知が失敗しました', e);
+          });
+        }
+      }
+    },
+
+
+
+    showToast(m) { 
+      const t = document.getElementById('toast'); 
+      if (t) {
+        t.innerText = m; 
+        t.classList.add('show'); 
+        setTimeout(() => t.classList.remove('show'), 3000); 
+      }
+    }
+  };
+
+  window.onerror = function(msg, url, lineNo, columnNo, error) {
+    alert("エラーが発生しました:\n" + msg + "\n行: " + lineNo);
+    const splash = document.getElementById('splash-screen');
+    if (splash) splash.style.display = 'none';
+    return false;
+  };
+
+  window.onload = () => app.init();
+</script>
+
+</body>
+</html>

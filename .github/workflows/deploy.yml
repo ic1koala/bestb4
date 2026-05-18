@@ -1,0 +1,35 @@
+name: Deploy Google Apps Script
+
+on:
+  push:
+    branches:
+      - main  # トリガーとするブランチ名。必要に応じて変更してください。
+
+jobs:
+  deploy:
+    name: Deploy to GAS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Clasp
+        run: npm install -g @google/clasp
+
+      - name: Configure Credentials
+        run: |
+          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Clasp Push
+        run: clasp push -f
+
+      - name: Clasp Deploy (Web App Version Update)
+        run: |
+          # 既存のデプロイIDに対して新しいバージョンをリリースし、URLを変更せずに最新コードを適用します
+          clasp deploy --deploymentId "AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs" --description "Auto-deployed via GitHub Actions"

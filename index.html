@@ -1574,17 +1574,20 @@ ${content}
         if (currentX > threshold) {
           if (qty > 1) {
             el.style.transform = `translateX(0)`;
+            // 即座に数量選択ポップアップを起動
+            this.showQtyConsumeSelector(id);
+            // 500ms間swipingをtrueにしておき、モバイルのゴーストクリック（openEdit）を完全に無効化する
             setTimeout(() => {
               el.dataset.swiping = 'false';
-              this.showQtyConsumeSelector(id);
-            }, 150);
+            }, 500);
           } else {
             el.style.transform = `translateX(${window.innerWidth}px)`;
             setTimeout(() => this.consumeItem(id), 200);
           }
         } else {
           el.style.transform = `translateX(0)`;
-          setTimeout(() => el.dataset.swiping = 'false', 100);
+          // 500ms間swipingをtrueに維持してゴーストクリックを無効化
+          setTimeout(() => el.dataset.swiping = 'false', 500);
         }
         currentX = 0;
       });

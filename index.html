@@ -388,18 +388,7 @@
       <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※設定条件に合わせて食材をポップアップまたはメールでお知らせします。</p>
     </div>
 
-    <!-- 2. GAS連携設定 (管理者・詳細設定) -->
-    <div class="settings-section" style="margin-bottom:30px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">GAS連携設定</p>
-      <div id="gas-setup-container" style="display:flex; flex-direction:column; gap:8px;">
-        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; padding:12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.8rem; font-weight:600;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <button id="gas-url-btn" onclick="app.toggleGasUrlEdit()" style="padding:10px 16px; border-radius:12px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer;">保存</button>
-          <button onclick="app.resetGasUrlDefault()" style="padding:8px 12px; border-radius:12px; border:none; background:#f1f5f9; color:#64748b; font-weight:700; font-size:0.7rem; cursor:pointer;">初期値にリセット</button>
-        </div>
-      </div>
-      <p style="font-size:0.6rem; color:var(--text-muted); margin-top:8px;">※GAS（Google Apps Script）のWebアプリURLを設定します。空欄の場合は初期設定のURLが使用されます。</p>
-    </div>
+
 
     <!-- 3. 消費履歴 -->
     <div class="settings-section" style="margin-bottom:30px;">
@@ -1075,6 +1064,41 @@ ${content}
       }
     },
 
+    async archiveEntireItem(id) {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      const cachedItems = await this.getAllItems(true);
+      const idx = cachedItems.findIndex(i => i.id === id);
+      if (idx === -1) return;
+
+      const item = cachedItems[idx];
+      cachedItems[idx].archivedAt = new Date().toISOString();
+      const archived = cachedItems[idx].archivedAt;
+      const toastMsg = `${item.name}（${item.qty}個）をすべて消費しました`;
+
+      // UIを即座に再描画
+      this.renderList();
+      this.renderCalendar();
+      this.showToast(toastMsg);
+
+      try {
+        fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            action: 'update',
+            email: this.userEmail,
+            id: item.id,
+            qty: 0,
+            archivedAt: archived
+          })
+        });
+        setTimeout(() => this.renderHistory(), 1000);
+      } catch (e) {
+        console.error('GAS Background Sync Error:', e);
+      }
+    },
+
     toggleUsage() {
       const content = document.getElementById('usage-content');
       const arrow = document.getElementById('usage-arrow');
@@ -1378,11 +1402,16 @@ ${content}
           <div class="swipe-action-bg">✔︎</div>
           <div class="item-card" id="item-${item.id}">
             <div class="item-icon">${this.getIcon(item.name, item.cat)}<div class="item-qty">${item.qty}</div></div>
-            <div style="flex:1;">
-              <div style="font-weight:700;">${item.name}</div>
+            <div style="flex:1; min-width:0; padding-right:8px;">
+              <div style="font-weight:700; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${item.name}</div>
               <div style="font-size:0.75rem; color:var(--text-muted);">期限: ${this.formatDateForDisplay(item.exp)}</div>
             </div>
-            <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '期限切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
+              <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '期限切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
+              ${item.qty > 1 ? `
+                <button onclick="event.stopPropagation(); app.archiveEntireItem(${item.id});" style="padding:4px 10px; font-size:0.65rem; font-weight:800; color:#fff; background:linear-gradient(135deg, #ef4444, #f87171); border:none; border-radius:8px; cursor:pointer; transition:0.2s; box-shadow:0 4px 10px rgba(239, 68, 68, 0.2); outline:none;">まとめて削除</button>
+              ` : ''}
+            </div>
           </div>
 
         `;
@@ -1399,30 +1428,52 @@ ${content}
 
     attachSwipeEvents(el, id) {
       let startX = 0;
+      let startY = 0;
       let currentX = 0;
       let isSwiping = false;
+      let isScroll = false;
       const bg = el.previousElementSibling;
 
       el.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
         el.style.transition = 'none';
-        bg.style.opacity = '0';
+        if (bg) bg.style.opacity = '0';
         isSwiping = true;
+        isScroll = false;
         el.dataset.swiping = 'false';
       }, { passive: true });
 
       el.addEventListener('touchmove', (e) => {
-        if (!isSwiping) return;
-        currentX = e.touches[0].clientX - startX;
-        if (currentX > 0) {
+        if (!isSwiping || isScroll) return;
+        const deltaX = e.touches[0].clientX - startX;
+        const deltaY = e.touches[0].clientY - startY;
+
+        // 縦スクロール判定（縦方向の動きが横方向より大きい場合はスクロールとみなす）
+        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+          isScroll = true;
+          isSwiping = false;
+          el.style.transform = `translateX(0)`;
+          if (bg) bg.style.opacity = '0';
+          return;
+        }
+
+        if (deltaX > 0) {
+          currentX = deltaX;
           el.style.transform = `translateX(${currentX}px)`;
-          bg.style.opacity = Math.min(currentX / 100, 1);
-          if (currentX > 10) el.dataset.swiping = 'true';
+          if (bg) bg.style.opacity = Math.min(currentX / 100, 1);
+          if (currentX > 15) el.dataset.swiping = 'true';
         }
       }, { passive: true });
 
       el.addEventListener('touchend', () => {
         isSwiping = false;
+        if (isScroll) {
+          el.style.transform = `translateX(0)`;
+          el.dataset.swiping = 'false';
+          currentX = 0;
+          return;
+        }
         el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
         if (currentX > 100) {
           el.style.transform = `translateX(${window.innerWidth}px)`;

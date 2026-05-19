@@ -114,7 +114,7 @@ function doGet(e) {
 }
 
 function generateRecipesByAI(ingredients) {
-  const prompt = "あなたはプロの料理研究家です。以下の食材をベースに「今すぐネットで人気のレシピ」を検索・整理し、3〜5個提案してください。\n食材: " + ingredients + "\n\n必ず以下のJSON配列フォーマットのみを出力してください。\n[{\"title\": \"料理名\", \"desc\": \"要約\", \"source\": \"検索ソース\", \"url\": \"リンクURL\", \"ing\": \"活用食材\"}]";
+  const prompt = "あなたは食材消費とフードロス削減の専門家です。期限が近い以下の食材を賢く消費、または長持ちさせるためのTIPS（超簡単アレンジや保存ハック）を3〜5個提案してください。\n食材: " + ingredients + "\n\n必ず以下のJSON配列フォーマットのみを出力してください。マークダウンの```json等の枠線は含めず、純粋なJSON配列のみを返してください。\n[{\"title\": \"TIPSのタイトル\", \"type\": \"調理 | 保存\", \"desc\": \"具体的なアクション・コツ（家にある調味料で2分で作れる一品や、長持ちさせる冷凍保存法など、2行以内で記述）\", \"ing\": \"対象食材\"}]";
   
   // REST APIの正しいキャメルケース形式 (googleSearchRetrieval) を使用
   const payloadWithSearch = {

@@ -180,6 +180,15 @@
     @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     #entry-overlay { z-index: 2100; }
 
+    .pulse-ring-active {
+      display: block !important;
+      animation: voicePulse 1.2s infinite ease-out;
+    }
+    @keyframes voicePulse {
+      0% { transform: scale(0.85); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
     /* Swipe-to-Consume Styles */
     .swipe-container {
       position: relative;
@@ -320,32 +329,29 @@
     </div>
   </div>
 
-  <!-- 5. Rescue Recipe Screen -->
-  <div id="recipe-screen" class="screen" style="padding:60px 24px; overflow-y:auto;">
+  <!-- 5. Food Longevity TIPS Screen -->
+  <div id="recipe-screen" class="screen" style="padding:60px 24px 100px; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h2 style="font-weight:900; font-size:1.6rem; margin:0;">レスキュー・レシピ</h2>
-      <button onclick="app.renderRecipes(true)" style="background:var(--primary); color:#fff; border:none; padding:8px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; cursor:pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">更新🔄</button>
+      <h2 style="font-weight:900; font-size:1.6rem; margin:0; color:#1e293b;">長持ちTIPS 💡</h2>
+      <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:12px; gap:4px;">
+        <button id="tips-all-btn" onclick="app.setTipsTab('all')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s; outline:none;">すべて</button>
+        <button id="tips-fav-btn" onclick="app.setTipsTab('fav')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:transparent; color:#64748b; transition:all 0.2s; outline:none;">❤️ お気に入り</button>
+      </div>
     </div>
     
     <div style="margin-bottom:28px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">本日の救出候補食材</p>
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">冷蔵庫にある食材カテゴリ</p>
       <div id="recipe-ingredients" style="display:flex; flex-wrap:wrap; gap:8px;">
-        <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材を読み込んでいます...</p>
+        <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材カテゴリを読み込んでいます...</p>
       </div>
     </div>
 
-    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">おすすめレシピ (本日6:00更新)</p>
-      <div style="background:rgba(16, 185, 129, 0.1); color:var(--primary); font-size:0.6rem; font-weight:900; padding:4px 10px; border-radius:30px;">LIMITED</div>
+    <div style="margin-bottom:12px;">
+      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">鮮度を保つコツ・裏ワザ</p>
     </div>
     
     <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
-      <!-- ローディング用スケルトン -->
-      <div id="recipe-loader" style="text-align:center; padding:40px 20px;">
-        <div style="width:30px; height:30px; border:3px solid #f1f5f9; border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px;"></div>
-        <p style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">最新のレシピを読み込み中...</p>
-      </div>
-      <!-- レシピカードがここに入ります -->
+      <!-- TIPSカードがここに入ります -->
     </div>
   </div>
 
@@ -491,6 +497,36 @@
     </div>
   </div>
 
+  <!-- 7b. Voice Input Overlay -->
+  <div id="voice-overlay" class="overlay" style="display:none; background:rgba(255,255,255,0.85); backdrop-filter:blur(20px); z-index:3000;">
+    <div class="entry-card" style="position:relative; width:90%; max-width:400px; padding:32px 24px; border-radius:32px; box-shadow:0 20px 50px rgba(0,0,0,0.06); background:#fff; border:1px solid rgba(255,255,255,0.8); text-align:center;">
+      <div onclick="app.closeVoiceInput()" style="position:absolute; right:20px; top:20px; font-size:1.4rem; color:var(--text-muted); cursor:pointer; padding:6px; line-height:1;">✕</div>
+      
+      <h3 style="font-weight:900; color:#1e293b; margin-top:10px; margin-bottom:6px; font-size:1.35rem;">音声でまとめて入力 🎙️</h3>
+      <p style="color:var(--text-muted); font-size:0.75rem; font-weight:700; line-height:1.4; margin-bottom:24px;">食材の名前や賞味期限を声に出して話すと、<br>AIが自動で整理・登録します。</p>
+
+      <!-- 録音・波形アニメーション表示エリア -->
+      <div style="position:relative; width:120px; height:120px; margin:0 auto 24px; display:flex; justify-content:center; align-items:center;">
+        <div id="voice-pulse-ring" class="pulse-ring" style="position:absolute; width:100%; height:100%; border-radius:50%; background:rgba(168, 85, 247, 0.15); display:none;"></div>
+        <button id="voice-mic-btn" onclick="app.toggleVoiceRecording()" style="position:relative; z-index:2; width:80px; height:80px; border-radius:50%; border:none; background:linear-gradient(135deg, #a855f7, #c084fc); color:#fff; display:flex; justify-content:center; align-items:center; cursor:pointer; outline:none; box-shadow:0 8px 24px rgba(168, 85, 247, 0.3); transition:transform 0.2s active;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        </button>
+      </div>
+
+      <div id="voice-status-text" style="font-size:0.8rem; font-weight:800; color:#64748b; margin-bottom:20px;">マイクボタンを押して話し始めてください</div>
+
+      <!-- リアルタイム文字起こしテキスト表示エリア -->
+      <div style="background:#f8fafc; border:1px solid #f1f5f9; border-radius:20px; padding:16px; min-height:80px; margin-bottom:24px; text-align:left;">
+        <div id="voice-transcript-placeholder" style="font-size:0.8rem; color:#94a3b8; font-weight:700; line-height:1.5; text-align:center; padding-top:12px;">音声認識中ここに文字が表示されます。<br><span style="font-size:0.7rem; font-weight:600;">「にんじん期限5月25日、牛乳期限5月30日」のように話しかけてください。</span></div>
+        <p id="voice-transcript-text" style="display:none; font-size:0.85rem; color:#334155; font-weight:700; line-height:1.6; margin:0; word-break:break-all;"></p>
+      </div>
+
+      <button id="voice-submit-btn" onclick="app.submitVoiceText()" style="width:100%; padding:16px; border-radius:18px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.95rem; opacity:0.5; pointer-events:none; transition:all 0.3s; box-shadow:0 8px 20px rgba(16, 185, 129, 0.2);">AIで自動判別して登録する</button>
+      
+      <p style="font-size:0.65rem; color:var(--text-muted); line-height:1.4; margin-top:16px; font-weight:700;">※お使いの環境（マイク、静音状態）やブラウザのバージョンによってはうまく動作しないことがあります。</p>
+    </div>
+  </div>
+
   <!-- 8. AI Analysis Loading Overlay -->
   <div id="ocr-loading" class="overlay" style="background:rgba(255,255,255,0.8); backdrop-filter:blur(15px); z-index:4000;">
     <div style="text-align:center;">
@@ -519,6 +555,10 @@
         <span>写真をアップロード</span>
         <input type="file" id="file-upload" hidden accept="image/*" multiple onchange="app.handleFileUpload(event); app.toggleActionMenu();">
       </div>
+      <div class="action-item" onclick="app.openVoiceInput(); app.toggleActionMenu();">
+        <i style="background:#f3e8ff; color:#a855f7;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></i>
+        <span>音声で入力</span>
+      </div>
       <div class="action-item" onclick="app.openManualEntry();">
         <i style="background:#fef2f2; color:#ef4444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></i>
         <span>手入力で登録</span>
@@ -536,7 +576,7 @@
     <div class="nav-add-btn" onclick="app.toggleActionMenu()">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </div>
-    <div class="nav-btn" onclick="app.showScreen('recipe-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 19V5C18 3.89543 17.1046 3 16 3H8C6.89543 3 6 3.89543 6 5V19L12 16L18 19Z"/><path d="M12 11V6" stroke-linecap="round"/></svg><span>レシピ</span></div>
+    <div class="nav-btn" onclick="app.showScreen('recipe-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg><span>TIPS</span></div>
     <div class="nav-btn" onclick="app.showScreen('settings-screen')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>設定</span></div>
   </div>
 
@@ -803,128 +843,187 @@
       }, 500);
     },
 
+    tipsLibrary: [
+      {
+        title: "お肉を長持ちさせる冷凍保存テク 🥩",
+        cat: "肉",
+        content: "パックのまま冷凍せず、空気に触れないようラップでぴったり包み、フリーザーバッグに入れると霜や酸化を防ぎます。",
+        icon: "🥩"
+      },
+      {
+        title: "葉物野菜をシャキッと保つコツ 🥬",
+        cat: "野菜",
+        content: "キャベツやレタスは芯をつまようじで数箇所刺すか、濡らしたキッチンペーパーを芯にあててポリ袋に入れると成長が止まり長持ちします。",
+        icon: "🥬"
+      },
+      {
+        title: "ドリップを拭き取って魚の臭みオフ 🐟",
+        cat: "魚",
+        content: "魚から出る水分（ドリップ）は臭みの原因。水気をよく拭き取り、軽く塩を振って水分を出してからラップで包んで冷蔵してください。",
+        icon: "🐟"
+      },
+      {
+        title: "牛乳や卵は冷蔵庫の奥に保管！ 🥚",
+        cat: "乳製品・卵",
+        content: "ドアポケットは温度変化が激しいため、卵や牛乳は冷蔵庫の棚の奥に置くことで、冷気が安定し鮮度を長く保てます。",
+        icon: "🥚"
+      },
+      {
+        title: "マヨネーズは冷やしすぎ厳禁 🧂",
+        cat: "調味料",
+        content: "マヨネーズは0℃以下になると油と卵が分離してしまいます。冷蔵庫のドアポケットなどの比較的温度が下がりにくい場所で保管するのが最適です。",
+        icon: "🧂"
+      },
+      {
+        title: "アボカドは常温で追熟させて 🥑",
+        cat: "野菜",
+        content: "アボカドは5℃以下になると追熟が止まり、黒ずみ（低温障害）の原因になります。食べる直前まで常温で保管し、熟してから冷蔵庫に入れてください。",
+        icon: "🥑"
+      },
+      {
+        title: "じゃがいもはリンゴと一緒に保管 🥔",
+        cat: "野菜",
+        content: "リンゴが出す「エチレンガス」にはじゃがいもの発芽を抑える効果があります。一緒にポリ袋に入れて冷暗所で保存すると長持ちします。",
+        icon: "🥔"
+      },
+      {
+        title: "食材管理の基本ルール「先入れ先出し」 📦",
+        cat: "その他",
+        content: "新しく買ってきた食材は奥に、期限の近い古い食材を手前に配置することで、使い忘れと無駄な廃棄をゼロにします！",
+        icon: "📦"
+      }
+    ],
+
+    getFavoriteTips() {
+      try {
+        const favs = localStorage.getItem('bestb4_favorite_tips');
+        return favs ? JSON.parse(favs) : [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveFavoriteTips(favs) {
+      try {
+        localStorage.setItem('bestb4_favorite_tips', JSON.stringify(favs));
+      } catch (e) {}
+    },
+
+    toggleTipFavorite(title) {
+      let favs = this.getFavoriteTips();
+      if (favs.includes(title)) {
+        favs = favs.filter(t => t !== title);
+        this.showToast('お気に入りから削除しました 💔');
+      } else {
+        favs.push(title);
+        this.showToast('お気に入りに追加しました ❤️');
+      }
+      this.saveFavoriteTips(favs);
+      this.renderRecipes(); // renderRecipesがTIPS表示の共通エンドポイント
+    },
+
+    shareTipToLine(title, content) {
+      const text = `BestB4食材長持ちTIPS:
+【${title}】
+${content}
+#BestB4 #食品ロス削減`;
+      const url = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    },
+
+    setTipsTab(tab) {
+      this.currentTipsTab = tab;
+      const allBtn = document.getElementById('tips-all-btn');
+      const favBtn = document.getElementById('tips-fav-btn');
+      if (allBtn && favBtn) {
+        if (tab === 'all') {
+          allBtn.style.background = 'var(--primary)';
+          allBtn.style.color = '#fff';
+          favBtn.style.background = 'transparent';
+          favBtn.style.color = '#64748b';
+        } else {
+          favBtn.style.background = 'var(--primary)';
+          favBtn.style.color = '#fff';
+          allBtn.style.background = 'transparent';
+          allBtn.style.color = '#64748b';
+        }
+      }
+      this.renderRecipes();
+    },
+
     async renderRecipes(forceUpdate = false) {
-      if (forceUpdate) this.showToast('最新のレシピから取得しています...');
-      const loader = document.getElementById('recipe-loader');
-      const listContainer = document.getElementById('recipe-list');
-      const ingredientsContainer = document.getElementById('recipe-ingredients');
-      if (!listContainer || !ingredientsContainer) return;
+      const container = document.getElementById('recipe-list');
+      const badgeContainer = document.getElementById('recipe-ingredients');
+      const tabFilter = this.currentTipsTab || 'all'; // 'all' or 'fav'
       
-      // 1. 食材バッジの描画（期限3日以内）
+      if (!container) return;
+
+      // 1. 冷蔵庫にある食材カテゴリに応じたおすすめTIPSを上部に優先表示
       const items = await this.getAllItems();
-      if (!items) {
-        if (loader) loader.style.display = 'none';
-        listContainer.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted);">同期エラーによりアイテムを取得できませんでした</p>';
-        return;
+      const activeItems = (items || []).filter(i => !i.archivedAt);
+      const activeCats = [...new Set(activeItems.map(i => i.cat))];
+
+      if (badgeContainer) {
+        if (activeCats.length === 0) {
+          badgeContainer.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted); opacity:0.8; font-weight:700;">冷蔵庫が空っぽです。お買い物を登録しましょう！</span>';
+        } else {
+          badgeContainer.innerHTML = activeCats.map(cat => `
+            <span style="background:rgba(16, 185, 129, 0.1); color:var(--primary); padding:6px 14px; border-radius:30px; font-size:0.75rem; font-weight:800; border:1px solid rgba(16, 185, 129, 0.2);">
+              ${this.catIcons[cat] || '📦'} ${cat}
+            </span>
+          `).join('');
+        }
       }
 
-      const today = new Date();
-      const threeDaysLater = new Date();
-      threeDaysLater.setDate(today.getDate() + 3);
+      // 2. TIPSリストのフィルタリングとソート
+      let tips = [...this.tipsLibrary];
       
-      const rescueItems = items.filter(i => {
-        const exp = new Date(i.exp);
-        return !i.archivedAt && exp <= threeDaysLater;
+      // 冷蔵庫にあるカテゴリのTIPSを先頭にソート
+      tips.sort((a, b) => {
+        const hasA = activeCats.includes(a.cat) ? 1 : 0;
+        const hasB = activeCats.includes(b.cat) ? 1 : 0;
+        return hasB - hasA;
       });
 
-      if (rescueItems.length === 0) {
-        ingredientsContainer.innerHTML = '<p style="font-size:0.75rem; color:var(--text-muted); opacity:0.7; padding:10px;">期限の近い食材はありません。バッチリです！</p>';
-      } else {
-        ingredientsContainer.innerHTML = rescueItems.slice(0, 5).map(item => `
-          <div style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:6px 14px; border-radius:30px; font-size:0.75rem; font-weight:800; border:1px solid rgba(239, 68, 68, 0.2);">
-            ⚠️ ${item.name}
-          </div>
-        `).join('');
+      const favs = this.getFavoriteTips();
+      if (tabFilter === 'fav') {
+        tips = tips.filter(t => favs.includes(t.title));
       }
 
-      // 2. レシピデータの取得（キャッシュ or AI）
-      let recipes = [];
-      const cache = safeStorage.get(this.recipeCacheKey);
-      const ts = safeStorage.get(this.recipeTimestampKey);
-      const now = new Date().getTime();
-      
-      if (!forceUpdate && cache && ts && (now - parseInt(ts)) < 24 * 60 * 60 * 1000) {
-        recipes = JSON.parse(cache);
-      } else if (forceUpdate) {
-        if (loader) loader.style.display = 'block';
-        try {
-          // GASプロキシ経由。AI生成は手動ボタンのみ。
-          if (rescueItems.length > 0) {
-            const ingNames = rescueItems.slice(0, 5).map(i => i.name);
-            recipes = await this.generateRecipesWithGemini(ingNames);
-          } else {
-            // 食材がない場合のバックアップ
-            recipes = [
-              { title: "何でも野菜の味噌汁", url: "https://cookpad.com/search/野菜 味噌汁", ing: "余っている野菜", source: "定番", desc: "何にでも合う万能味噌汁" },
-              { title: "厚切り豚肉の生姜焼き", url: "https://cookpad.com/search/豚肉 生姜焼き", ing: "豚肉", source: "定番", desc: "スタミナ満点メニュー" },
-              { title: "彩り野菜の肉野菜炒め", url: "https://cookpad.com/search/野菜炒め", ing: "キャベツ、人参、豚肉", source: "定番", desc: "冷蔵庫掃除の決定版" }
-            ];
-          }
-
-          if (!Array.isArray(recipes) || recipes.length === 0) throw new Error('レシピデータが空でした');
-          safeStorage.set(this.recipeCacheKey, JSON.stringify(recipes));
-          safeStorage.set(this.recipeTimestampKey, now.toString());
-        } catch (e) {
-          console.error('AI Fetch Error:', e);
-          if (loader) loader.style.display = 'none';
-          listContainer.innerHTML = `
-            <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
-              <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">更新エラーが発生しました。時間を置いて右上の（🔄）をクリックしてください。</p>
-            </div>
-          `;
-          return;
-        }
-      } else {
-        // キャッシュなしの初期状態
-        if (loader) loader.style.display = 'none';
-        listContainer.innerHTML = `
-          <div style="text-align:center; padding:40px 20px; background:rgba(255,255,255,0.4); border-radius:24px; border:1px dashed #e2e8f0;">
-            <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">定時更新のお知らせ、もしくはマニュアルで更新する場合は右上（🔄）をクリックしてください。</p>
+      if (tips.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:50px 20px; color:var(--text-muted);">
+            <div style="font-size:3rem; margin-bottom:12px;">💡</div>
+            <p style="font-size:0.9rem; font-weight:700;">${tabFilter === 'fav' ? 'お気に入りのTIPSはありません' : 'TIPSがありません'}</p>
           </div>
         `;
         return;
       }
 
-      // 3. レシピカードの描画
-      if (loader) loader.style.display = 'none';
-      listContainer.innerHTML = recipes.slice(0, 5).map(r => `
-        <div onclick="window.open('${r.url}', '_blank')" class="glass-card" style="padding:24px; border-radius:28px; display:flex; flex-direction:column; gap:14px; cursor:pointer; background:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.8); transition:transform 0.2s;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.6rem; font-weight:900; background:var(--primary); color:#fff; padding:4px 10px; border-radius:30px; letter-spacing:0.05em;">${r.source || 'ネット検索結果'}</span>
-            <div style="background:#f1f5f9; color:#64748b; font-size:0.6rem; font-weight:900; padding:4px 8px; border-radius:8px;">調理15分</div>
+      container.innerHTML = tips.map(tip => {
+        const isFav = favs.includes(tip.title);
+        return `
+          <div class="glass-card" style="padding:22px; border-radius:24px; display:flex; flex-direction:column; gap:12px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.65rem; font-weight:800; background:rgba(16, 185, 129, 0.1); color:var(--primary); padding:4px 10px; border-radius:30px;">
+                ${this.catIcons[tip.cat] || '📦'} ${tip.cat}の保存
+              </span>
+              <div style="display:flex; gap:8px;">
+                <button onclick="app.toggleTipFavorite('${tip.title}')" style="background:none; border:none; font-size:1.2rem; cursor:pointer; padding:4px; line-height:1; outline:none; transition:transform 0.1s active;">
+                  ${isFav ? '❤️' : '🤍'}
+                </button>
+                <button onclick="app.shareTipToLine('${tip.title}', '${tip.content}')" style="background:#06c755; color:#fff; border:none; padding:4px 10px; border-radius:12px; font-size:0.65rem; font-weight:800; display:flex; align-items:center; gap:4px; cursor:pointer; outline:none;">
+                  LINE共有
+                </button>
+              </div>
+            </div>
+            <div>
+              <div style="font-weight:900; font-size:1.05rem; color:#1e293b; margin-bottom:6px; line-height:1.35;">${tip.title}</div>
+              <p style="font-size:0.8rem; color:#475569; line-height:1.6; margin:0; font-weight:500;">${tip.content}</p>
+            </div>
           </div>
-          <div>
-            <div style="font-weight:900; font-size:1.15rem; color:#1e293b; margin-bottom:6px; line-height:1.2;">${r.title}</div>
-            <p style="font-size:0.7rem; color:#64748b; line-height:1.5; margin:0;">${r.desc || '食材を活かしたおすすめのレシピです。'}</p>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.5); padding:10px; border-radius:16px; border:1px solid #f1f5f9;">
-            <span style="font-size:0.65rem; font-weight:850; color:#10b981;">💡 メイン:</span>
-            <span style="font-size:0.75rem; font-weight:700; color:#475569;">${r.ing}</span>
-          </div>
-          <button style="width:100%; padding:12px; border-radius:16px; border:none; background:#1e293b; color:#fff; font-weight:800; font-size:0.75rem; margin-top:4px;">レシピの詳細をチェック ➔</button>
-        </div>
-      `).join('');
-    },
-
-    async generateRecipesWithGemini(ingredientsList) {
-      // GASの公開URLに対してAIレシピのリクエストを送ります（APIキーはGAS側に隠蔽されています）
-      const url = `${this.gasStorageUrl}?action=getRecipes&ingredients=${encodeURIComponent(ingredientsList.join("、"))}`;
-      
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("GAS API Proxy Request Failed");
-      
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-      
-      // GASから返ってきたGeminiのレスポンスからテキストを抽出
-      const text = data.candidates[0].content.parts[0].text;
-      
-      try {
-        return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-      } catch (e) {
-        console.error("GAS Proxy JSON Parse Error:", text);
-        throw new Error("AIが正しくない形式で回答しました");
-      }
+        `;
+      }).join('');
     },
 
 
@@ -988,27 +1087,133 @@
 
 
 
-    async getAllItems(useCache = false) {
-      if (!this.userEmail) return [];
-      // キャッシュ利用フラグがあり、かつデータが存在する場合は即時返却（爆速化）
-      if (useCache && this._itemsCache) return this._itemsCache;
-
+    loadLocalCache() {
       try {
-        const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}`;
-        const resp = await fetch(url, { redirect: 'follow' });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        const items = Array.isArray(data) ? data : [];
-        this._itemsCache = items; // キャッシュを更新
-        return items;
+        const data = localStorage.getItem('bestb4_items_cache');
+        if (data) {
+          this._itemsCache = JSON.parse(data);
+          return this._itemsCache;
+        }
       } catch (e) {
-        console.error('GAS Connection Error:', e);
-        return null;
+        console.error('Failed to load local cache:', e);
+      }
+      return null;
+    },
+
+    saveLocalCache(items) {
+      try {
+        localStorage.setItem('bestb4_items_cache', JSON.stringify(items));
+      } catch (e) {
+        console.error('Failed to save local cache:', e);
       }
     },
 
+    async syncItemsInBackground() {
+      if (!this.userEmail || !this.gasStorageUrl) return;
+      try {
+        const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}&_t=${Date.now()}`;
+        const resp = await fetch(url, { redirect: 'follow' });
+        if (resp.ok) {
+          const data = await resp.json();
+          const items = Array.isArray(data) ? data : [];
+          this._itemsCache = items;
+          this.saveLocalCache(items);
+          
+          this.renderListSilently();
+          this.renderCalendar();
+          console.log('Background sync complete, cache updated');
+        }
+      } catch (e) {
+        console.error('Background sync failed:', e);
+      }
+    },
+
+    renderListSilently() {
+      const container = document.getElementById('item-list');
+      const sidebar = document.getElementById('category-sidebar');
+      if (!container || !sidebar) return;
+
+      const search = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase() : '';
+      const sort = document.getElementById('sort-order') ? document.getElementById('sort-order').value : 'exp';
+      const activeItems = (this._itemsCache || []).filter(i => !i.archivedAt);
+      
+      const activeCats = ["すべて", ...this.categories.filter(c => activeItems.some(i => i.cat === c))];
+      sidebar.innerHTML = "";
+      activeCats.forEach(cat => {
+        const tab = document.createElement('div');
+        tab.className = `cat-tab ${this.currentCat === cat ? 'active' : ''}`;
+        tab.innerHTML = `<i>${this.catIcons[cat]||'📦'}</i><span>${cat}</span>`;
+        tab.onclick = () => { this.currentCat = cat; this.renderList(); };
+        sidebar.appendChild(tab);
+      });
+
+      let items = activeItems.filter(i => {
+        const matchSearch = i.name.toLowerCase().includes(search);
+        const matchCat = this.currentCat === "すべて" || i.cat === this.currentCat;
+        return matchSearch && matchCat;
+      });
+      
+      if(sort === 'exp') items.sort((a,b) => new Date(a.exp) - new Date(b.exp));
+      else if(sort === 'alpha') items.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+      else if(sort === 'qty') items.sort((a,b) => b.qty - a.qty);
+
+      container.innerHTML = "";
+      if(items.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted); font-size:0.9rem;">商品がありません</div>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const itemDate = new Date(item.exp);
+        const today = new Date();
+        itemDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        const diff = Math.ceil((itemDate - today) / 86400000);
+        
+        const swipeWrap = document.createElement('div');
+        swipeWrap.className = 'swipe-container';
+        swipeWrap.innerHTML = `
+          <div class="swipe-action-bg">✔︎</div>
+          <div class="item-card" id="item-${item.id}">
+            <div class="item-icon">${this.getIcon(item.name, item.cat)}<div class="item-qty">${item.qty}</div></div>
+            <div style="flex:1;">
+              <div style="font-weight:700;">${item.name}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">期限: ${this.formatDateForDisplay(item.exp)}</div>
+            </div>
+            <div style="font-size:0.8rem; font-weight:800; color:${diff <= 3 ? '#ef4444' : '#64748b'}">${diff < 0 ? '期限切れ' : (diff===0?'今日':`あと${diff}日`)}</div>
+          </div>
+        `;
+        container.appendChild(swipeWrap);
+        
+        const card = swipeWrap.querySelector('.item-card');
+        card.onclick = (e) => {
+            if (card.dataset.swiping === 'true') return;
+            this.openEdit(item);
+        };
+        this.attachSwipeEvents(card, item.id);
+      });
+    },
+
+    async getAllItems(useCache = false) {
+      if (!this.userEmail) return [];
+      
+      if (!this._itemsCache) {
+        this.loadLocalCache();
+      }
+
+      if (this.gasStorageUrl) {
+        this.syncItemsInBackground();
+      }
+
+      if (this._itemsCache) {
+        return this._itemsCache;
+      }
+
+      return [];
+    },
+
     async saveEntry() {
-      const name = document.getElementById('entry-name').value;
+      const name = document.getElementById('entry-name').value.trim();
       const cat = document.getElementById('entry-cat').value;
       const qty = parseInt(document.getElementById('entry-qty').value) || 1;
       const exp = document.getElementById('entry-exp').value;
@@ -1016,30 +1221,49 @@
       if (!name || !exp) return this.showToast('入力が足りません');
       if (!this.userEmail) return this.showToast('アカウント設定（メール）を完了してください');
 
-      const saveBtn = document.querySelector('#entry-overlay button');
-      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerText = '保存中...'; }
+      const isEdit = !!this.editingId;
+      const tempId = isEdit ? this.editingId : 'temp_' + Date.now();
+      const itemData = {
+        id: tempId,
+        name,
+        cat,
+        qty,
+        exp,
+        reg: new Date().toISOString()
+      };
 
-      this.showToast('スプレッドシートに保存中...');
+      let localItems = this.loadLocalCache() || [];
+      if (isEdit) {
+        localItems = localItems.map(i => i.id === tempId ? itemData : i);
+      } else {
+        localItems.push(itemData);
+      }
+
+      this._itemsCache = localItems;
+      this.saveLocalCache(localItems);
+
+      this.closeEntry();
+      this.renderList();
+      this.renderCalendar();
+      this.showToast(isEdit ? 'アイテムを更新しました！' : 'アイテムを追加しました！');
+
       try {
-        const payload = { action: this.editingId ? 'update' : 'add', email: this.userEmail, id: this.editingId, name, cat, qty, exp };
+        const payload = { action: isEdit ? 'update' : 'add', email: this.userEmail, id: tempId, name, cat, qty, exp };
         
-        await fetch(this.gasStorageUrl, {
+        fetch(this.gasStorageUrl, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
+        }).then(() => {
+          this.syncItemsInBackground();
+        }).catch(e => {
+          console.error('Optimistic sync post failed:', e);
         });
-        
-        // no-corsではokフラグは見られないため、成功とみなして処理を継続
-        this.closeEntry();
-        this.showToast('保存しました！(同期済み)');
-        setTimeout(() => this.renderList(), 500); 
-        this.renderCalendar();
+
         this.processMailIntegration({ name, exp, qty });
       } catch (e) {
-        this.showToast('通信エラーが発生しました。');
-      } finally {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = '保存する'; }
+        console.error('Optimistic post dispatch failed:', e);
       }
     },
 
@@ -1564,7 +1788,10 @@
       return d.toISOString().split('T')[0];
     },
 
+
     async startCamera() {
+      this.capturedPhotos = []; // 撮影した写真を初期化
+      this.updateCameraUI(); // UIを更新
       this.showScreen('camera-screen'); document.getElementById('bottom-nav').style.display='none';
       const v = document.getElementById('video-preview');
       try { this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } }); v.srcObject = this.stream; }
@@ -1573,6 +1800,167 @@
     stopCamera() {
       if(this.stream) this.stream.getTracks().forEach(t => t.stop());
       this.showScreen('list-screen'); document.getElementById('bottom-nav').style.display='flex';
+    },
+
+    updateCameraUI() {
+      const container = document.getElementById('camera-thumbnails-container');
+      const counter = document.getElementById('camera-counter-badge');
+      const doneBtn = document.getElementById('camera-done-btn');
+      const count = this.capturedPhotos ? this.capturedPhotos.length : 0;
+      
+      if (counter) {
+        if (count > 0) {
+          counter.style.display = 'block';
+          counter.innerText = `${count} / 5枚`;
+        } else {
+          counter.style.display = 'none';
+        }
+      }
+
+      if (doneBtn) {
+        doneBtn.querySelector('span').innerText = count;
+        if (count > 0) {
+          doneBtn.style.opacity = '1';
+          doneBtn.style.pointerEvents = 'auto';
+        } else {
+          doneBtn.style.opacity = '0.5';
+          doneBtn.style.pointerEvents = 'none';
+        }
+      }
+
+      if (container) {
+        if (count === 0) {
+          container.innerHTML = `<span style="color:var(--text-muted); font-size:0.8rem; font-weight:700;">シャッターを押して撮影（最大5枚）</span>`;
+        } else {
+          container.innerHTML = this.capturedPhotos.map((photo, idx) => `
+            <div style="position:relative; width:54px; height:54px; border-radius:10px; overflow:hidden; border:2px solid var(--primary); flex-shrink:0;">
+              <img src="data:image/jpeg;base64,${photo}" style="width:100%; height:100%; object-fit:cover;">
+              <div onclick="app.deleteCameraPhoto(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.6); color:#fff; width:16px; height:16px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:0.6rem; font-weight:900; cursor:pointer;">✕</div>
+            </div>
+          `).join('');
+        }
+      }
+    },
+
+    async snapCameraPhoto() {
+      if (this.capturedPhotos.length >= 5) {
+        return this.showToast('一度に撮影できるのは最大5枚までです');
+      }
+
+      const v = document.getElementById('video-preview');
+      const c = document.createElement('canvas');
+      const videoW = v.videoWidth;
+      const videoH = v.videoHeight;
+      const cropSize = Math.min(videoW, videoH) * 0.85;
+      const startX = (videoW - cropSize) / 2;
+      const startY = (videoH - cropSize) / 2;
+
+      c.width = 1024; c.height = 1024;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(v, startX, startY, cropSize, cropSize, 0, 0, 1024, 1024);
+      
+      const base64Img = c.toDataURL('image/jpeg', 0.9).split(',')[1];
+      this.capturedPhotos.push(base64Img);
+      
+      this.showToast(`${this.capturedPhotos.length}枚目の写真を撮影しました`);
+      this.updateCameraUI();
+
+      v.style.opacity = '0.3';
+      setTimeout(() => v.style.opacity = '1', 80);
+    },
+
+    deleteCameraPhoto(idx) {
+      this.capturedPhotos.splice(idx, 1);
+      this.updateCameraUI();
+      this.showToast('写真を削除しました');
+    },
+
+    async processCameraPhotos() {
+      if (!this.capturedPhotos || this.capturedPhotos.length === 0) return;
+      if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
+
+      const loader = document.getElementById('ocr-loading');
+      const loaderText = loader.querySelector('p');
+      if (loader) loader.style.display = 'flex';
+      
+      const total = this.capturedPhotos.length;
+      let successCount = 0;
+
+      if (this.stream) {
+        this.stream.getTracks().forEach(t => t.stop());
+        this.stream = null;
+      }
+      this.showScreen('list-screen');
+      document.getElementById('bottom-nav').style.display = 'flex';
+
+      try {
+        for (let i = 0; i < total; i++) {
+          const base64Img = this.capturedPhotos[i];
+          const baseText = `${total}枚中 ${i+1}枚目を解析中...`;
+          if (loaderText) loaderText.innerHTML = baseText;
+
+          try {
+            const result = await this.callGeminiAPI(base64Img);
+            if (result) {
+              const itemName = result.name || "不明な商品";
+              if (loaderText) loaderText.innerHTML = `${baseText}<br><span style="color:#10b981; font-weight:800;">✅ ${itemName} を発見</span>`;
+
+              if (total === 1) {
+                if (loader) loader.style.display = 'none';
+                this.parseGeminiResult(result);
+                return;
+              } else {
+                const tempId = 'temp_' + Date.now() + '_' + i;
+                const itemData = {
+                  id: tempId,
+                  name: result.name || '商品',
+                  cat: result.cat || 'その他',
+                  qty: 1,
+                  exp: result.exp || new Date().toISOString().split('T')[0],
+                  reg: new Date().toISOString()
+                };
+
+                let localItems = this.loadLocalCache() || [];
+                localItems.push(itemData);
+                this._itemsCache = localItems;
+                this.saveLocalCache(localItems);
+                this.renderList();
+
+                fetch(this.gasStorageUrl, {
+                  method: 'POST',
+                  mode: 'no-cors',
+                  headers: { 'Content-Type': 'text/plain' },
+                  body: JSON.stringify({
+                    action: 'add',
+                    email: this.userEmail,
+                    name: itemData.name,
+                    exp: itemData.exp,
+                    qty: 1,
+                    cat: itemData.cat,
+                    reg: itemData.reg
+                  })
+                });
+
+                successCount++;
+              }
+            }
+          } catch (e) {
+            console.error('Multi camera item processing failed:', e);
+          }
+          await new Promise(r => setTimeout(r, 600));
+        }
+
+        if (total > 1) {
+          this.showToast(`${successCount}枚の写真を正常に読み込み・登録しました！`);
+          this.syncItemsInBackground();
+        }
+      } catch (err) {
+        console.error('Multi photo processing error:', err);
+        this.showToast('解析エラーが発生しました。');
+      } finally {
+        if (loader) loader.style.display = 'none';
+        if (loaderText) loaderText.innerHTML = "最先端AIが画像から<br>商品名と重要期限を読み取っています...";
+      }
     },
 
     async handleFileUpload(event) {
@@ -1606,10 +1994,40 @@
                             this.parseGeminiResult(result);
                             return; // 1枚なら即終了して確認画面へ。finallyでloaderは消える
                         } else {
-                            await this.saveEntryDirectly(result);
+                            const tempId = 'temp_file_' + Date.now() + '_' + i;
+                            const itemData = {
+                              id: tempId,
+                              name: result.name || '商品',
+                              cat: result.cat || 'その他',
+                              qty: 1,
+                              exp: result.exp || new Date().toISOString().split('T')[0],
+                              reg: new Date().toISOString()
+                            };
+
+                            let localItems = this.loadLocalCache() || [];
+                            localItems.push(itemData);
+                            this._itemsCache = localItems;
+                            this.saveLocalCache(localItems);
+                            this.renderList();
+
+                            fetch(this.gasStorageUrl, {
+                              method: 'POST',
+                              mode: 'no-cors',
+                              headers: { 'Content-Type': 'text/plain' },
+                              body: JSON.stringify({
+                                action: 'add',
+                                email: this.userEmail,
+                                name: itemData.name,
+                                exp: itemData.exp,
+                                qty: 1,
+                                cat: itemData.cat,
+                                reg: itemData.reg
+                              })
+                            });
+
                             successCount++;
                         }
-                        await new Promise(r => setTimeout(r, 600)); // 体感用ラグ
+                        await new Promise(r => setTimeout(r, 600));
                     }
                 } catch(err) {
                     console.error(`File ${i} Error:`, err);
@@ -1619,13 +2037,12 @@
 
             if (successCount > 0) {
                 this.showToast(`${successCount}件のアイテムを追加し、同期しました！`);
-                setTimeout(() => this.renderList(), 500);
-                this.renderCalendar();
+                this.syncItemsInBackground();
             }
         } finally {
             if (loader) loader.style.display = 'none';
             if (loaderText) loaderText.innerHTML = defaultText;
-            event.target.value = ""; // 入力のリセット（同じファイルを再度選択可能にする）
+            event.target.value = "";
         }
     },
 
@@ -1633,7 +2050,6 @@
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
-          // 画像を最大1024pxにリサイズして容量削減（通信エラー対策）
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
@@ -1655,50 +2071,246 @@
       });
     },
 
-    async saveEntryDirectly(res) {
-      if (!this.userEmail) return;
-      const name = res.name || "商品";
-      const exp = res.exp || new Date().toISOString().split('T')[0];
-      
+    // --- 音声入力機能の実装 ---
+    openVoiceInput() {
+      const overlay = document.getElementById('voice-overlay');
+      const placeholder = document.getElementById('voice-transcript-placeholder');
+      const textDisp = document.getElementById('voice-transcript-text');
+      const submitBtn = document.getElementById('voice-submit-btn');
+      const statusText = document.getElementById('voice-status-text');
+      const pulseRing = document.getElementById('voice-pulse-ring');
 
-      try {
-        await fetch(this.gasStorageUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'add', email: this.userEmail, name, exp, qty: 1, cat: res.cat || 'その他', reg: new Date().toISOString() })
-        });
-      } catch (e) {
-        console.error('GAS Save Direct Error:', e);
+      if (overlay) overlay.style.display = 'flex';
+      document.getElementById('bottom-nav').style.display = 'none';
+
+      if (placeholder) placeholder.style.display = 'block';
+      if (textDisp) {
+        textDisp.style.display = 'none';
+        textDisp.innerText = '';
+      }
+      if (submitBtn) {
+        submitBtn.style.opacity = '0.5';
+        submitBtn.style.pointerEvents = 'none';
+      }
+      if (statusText) statusText.innerText = 'マイクボタンを押して話し始めてください';
+      if (pulseRing) {
+        pulseRing.style.display = 'none';
+        pulseRing.classList.remove('pulse-ring-active');
+      }
+      this.isVoiceRecording = false;
+    },
+
+    closeVoiceInput() {
+      if (this.isVoiceRecording) {
+        this.stopVoiceRecording();
+      }
+      const overlay = document.getElementById('voice-overlay');
+      if (overlay) overlay.style.display = 'none';
+      document.getElementById('bottom-nav').style.display = 'flex';
+    },
+
+    toggleVoiceRecording() {
+      if (this.isVoiceRecording) {
+        this.stopVoiceRecording();
+      } else {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          return this.showToast('お使いのブラウザは音声認識に対応していません。別の環境（Safari / Chrome等）でお試しください。');
+        }
+
+        this.recognition = new SpeechRecognition();
+        this.recognition.lang = 'ja-JP';
+        this.recognition.interimResults = true;
+        this.recognition.continuous = true;
+
+        const placeholder = document.getElementById('voice-transcript-placeholder');
+        const textDisp = document.getElementById('voice-transcript-text');
+        const submitBtn = document.getElementById('voice-submit-btn');
+        const statusText = document.getElementById('voice-status-text');
+        const pulseRing = document.getElementById('voice-pulse-ring');
+        const micBtn = document.getElementById('voice-mic-btn');
+
+        if (placeholder) placeholder.style.display = 'none';
+        if (textDisp) {
+          textDisp.style.display = 'block';
+          textDisp.innerText = '音声認識を開始中...';
+        }
+        if (statusText) statusText.innerText = '聞き取り中...（話し終えたら再度マイクを押すか、解析ボタンを押してください）';
+        if (pulseRing) {
+          pulseRing.style.display = 'block';
+          pulseRing.classList.add('pulse-ring-active');
+        }
+        if (micBtn) micBtn.innerHTML = '⏹️';
+
+        this.recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (textDisp) textDisp.innerText = transcript;
+          
+          if (transcript.trim().length > 0 && submitBtn) {
+            submitBtn.style.opacity = '1';
+            submitBtn.style.pointerEvents = 'auto';
+          }
+        };
+
+        this.recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          this.showToast('音声認識でエラーが発生しました: ' + event.error);
+          this.stopVoiceRecording();
+        };
+
+        this.recognition.onend = () => {
+          this.isVoiceRecording = false;
+          if (micBtn) micBtn.innerHTML = '🎤';
+          if (pulseRing) {
+            pulseRing.style.display = 'none';
+            pulseRing.classList.remove('pulse-ring-active');
+          }
+          if (statusText && textDisp && textDisp.innerText.trim().length > 0) {
+            statusText.innerText = '聞き取りを完了しました。よろしければ解析を実行してください。';
+          } else if (statusText) {
+            statusText.innerText = 'マイクボタンを押して話し始めてください';
+            if (placeholder) placeholder.style.display = 'block';
+            if (textDisp) textDisp.style.display = 'none';
+          }
+        };
+
+        this.recognition.start();
+        this.isVoiceRecording = true;
       }
     },
 
-    async captureAndOCR() {
-      if (!this.userEmail) return this.showToast('ERR-SYS-001: 設定画面からメールアドレスを登録してください');
+    stopVoiceRecording() {
+      if (this.recognition) {
+        this.recognition.stop();
+        this.recognition = null;
+      }
+      this.isVoiceRecording = false;
+      const micBtn = document.getElementById('voice-mic-btn');
+      const pulseRing = document.getElementById('voice-pulse-ring');
+      if (micBtn) micBtn.innerHTML = '🎤';
+      if (pulseRing) {
+        pulseRing.style.display = 'none';
+        pulseRing.classList.remove('pulse-ring-active');
+      }
+    },
 
-      const v = document.getElementById('video-preview');
-      const c = document.createElement('canvas');
-      const videoW = v.videoWidth;
-      const videoH = v.videoHeight;
-      const cropSize = Math.min(videoW, videoH) * 0.85;
-      const startX = (videoW - cropSize) / 2;
-      const startY = (videoH - cropSize) / 2;
+    async submitVoiceText() {
+      const textDisp = document.getElementById('voice-transcript-text');
+      if (!textDisp || !textDisp.innerText.trim()) return;
 
-      c.width = 1024; c.height = 1024;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(v, startX, startY, cropSize, cropSize, 0, 0, 1024, 1024);
-      
-      document.getElementById('ocr-loading').style.display = 'flex';
-      const base64Img = c.toDataURL('image/jpeg', 0.9).split(',')[1];
-      
+      const voiceText = textDisp.innerText.trim();
+      this.closeVoiceInput();
+
+      const loader = document.getElementById('ocr-loading');
+      const loaderText = loader.querySelector('p');
+      if (loader) loader.style.display = 'flex';
+      if (loaderText) loaderText.innerHTML = '音声入力されたテキストをAIが解析し、<br>食材と賞味期限を抽出しています...';
+
       try {
-        const result = await this.callGeminiAPI(base64Img);
-        this.parseGeminiResult(result);
-      } catch(e) { 
-          console.error("Gemini Error:", e);
-          this.showToast('解析失敗: ' + e.message); 
+        const items = await this.callGeminiVoiceParser(voiceText);
+        if (items && items.length > 0) {
+          let successCount = 0;
+          let localItems = this.loadLocalCache() || [];
+
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const tempId = 'temp_voice_' + Date.now() + '_' + i;
+            const itemData = {
+              id: tempId,
+              name: item.name || '商品',
+              cat: item.cat || 'その他',
+              qty: parseInt(item.qty) || 1,
+              exp: item.exp || new Date().toISOString().split('T')[0],
+              reg: new Date().toISOString()
+            };
+
+            localItems.push(itemData);
+            this._itemsCache = localItems;
+            this.saveLocalCache(localItems);
+
+            fetch(this.gasStorageUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'add',
+                email: this.userEmail,
+                name: itemData.name,
+                exp: itemData.exp,
+                qty: itemData.qty,
+                cat: itemData.cat,
+                reg: itemData.reg
+              })
+            });
+            successCount++;
+          }
+
+          this.renderList();
+          this.showToast(`音声から${successCount}個の食材を登録・同期しました！`);
+          this.syncItemsInBackground();
+        } else {
+          this.showToast('音声から食材を抽出できませんでした。もう一度はっきりとお話しください。');
+        }
+      } catch (err) {
+        console.error('Voice parse error:', err);
+        this.showToast('音声の解析に失敗しました。');
       } finally {
-          document.getElementById('ocr-loading').style.display = 'none';
+        if (loader) loader.style.display = 'none';
+        if (loaderText) loaderText.innerHTML = "最先端AIが画像から<br>商品名と重要期限を読み取っています...";
+      }
+    },
+
+    async callGeminiVoiceParser(text) {
+      const apiKey = await this.getApiKeyFromGAS().catch(e => {
+        throw new Error("ERR-OCR-001: GAS接続エラー。");
+      });
+      if (!apiKey) throw new Error("ERR-OCR-001: APIキーが取得できませんでした。");
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const systemPrompt = `あなたは優秀な冷蔵庫在庫管理アシスタントです。
+ユーザーの発言した音声書き起こしテキストから、冷蔵庫に登録すべき「商品名」「カテゴリ」「数量」「賞味期限」を認識し、JSON配列のみで出力してください。
+
+# カテゴリの選択肢：
+"肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"
+
+# 賞味期限の推測ルール：
+- 今日は ${new Date().toISOString().split('T')[0]} です。
+- 発言内に「期限は〜」や「○日まで」と明記されている場合はそれをパースしてください。
+- 期限が明記されていない食材の場合、今日の日付を基準にその食材の一般的な消費期限/賞味期限を推測して設定してください（例：牛乳なら3日後、お肉なら2日後、卵なら10日後、調味料なら180日後など）。
+- 出力は必ず以下のスキーマに従ったJSONのみにし、マークダウン装飾や説明文は一切含めないでください。
+
+[
+  {
+    "name": "商品名",
+    "cat": "カテゴリ名",
+    "qty": 数量(数値),
+    "exp": "YYYY-MM-DD"
+  }
+]`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `以下の発言から食材情報を抽出してください：\n「${text}」` }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
+      const data = await response.json();
+      try {
+        const rawJson = data.candidates[0].content.parts[0].text.trim();
+        return JSON.parse(rawJson);
+      } catch (e) {
+        console.error("Failed to parse Gemini speech JSON:", e);
+        return null;
       }
     },
 

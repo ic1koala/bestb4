@@ -1572,7 +1572,7 @@ ${content}
         const cachedItems = await this.getAllItems(true);
         const item = cachedItems.find(i => i.id === id);
         const qty = item ? item.qty : 1;
-        const threshold = window.innerWidth * 0.2; // 20% threshold
+        const threshold = window.innerWidth * 0.8; // 80% threshold
         
         if (currentX > threshold) {
           if (qty > 1) {

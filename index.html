@@ -1526,7 +1526,13 @@ ${content}
           const absX = Math.abs(deltaX);
           const absY = Math.abs(deltaY);
           if (absX > 8 || absY > 8) {
-            if (absY > absX) {
+            // 横への動きが強ければ横スワイプ確定としてロック
+            if (absX > absY) {
+              directionLocked = 'horizontal';
+              isScroll = false;
+              isSwiping = true;
+            } else if (absY > absX * 1.5) {
+              // 縦への動きが横の1.5倍以上なら縦スクロール確定としてロック
               directionLocked = 'vertical';
               isScroll = true;
               isSwiping = false;
@@ -1534,10 +1540,11 @@ ${content}
               if (bg) bg.style.opacity = '0';
               return;
             } else {
-              directionLocked = 'horizontal';
-              isScroll = false;
-              isSwiping = true;
+              // 中間の曖昧な斜め移動は判定を保留してロックしない
+              return;
             }
+          } else {
+            return;
           }
         }
 
@@ -1572,7 +1579,7 @@ ${content}
         const cachedItems = await this.getAllItems(true);
         const item = cachedItems.find(i => i.id === id);
         const qty = item ? item.qty : 1;
-        const threshold = window.innerWidth * 0.8; // 80% threshold
+        const threshold = window.innerWidth * 0.6; // Comfortable and secure 60% threshold
         
         if (currentX > threshold) {
           if (qty > 1) {

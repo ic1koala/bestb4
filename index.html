@@ -1744,11 +1744,12 @@
       
       const prompt = "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
       
-      // 型番付きを含む主要な3つのモデルのみに絞り、API呼び出し回数を削減して429エラーを防止します
+      // 2026年現在で有効な最新のGeminiモデルリスト（旧1.5系はサービス終了したため、2.5系/2.0系/3.1系を使用します）
       const models = [
+        'gemini-2.5-flash',
         'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b'
+        'gemini-2.5-flash-lite',
+        'gemini-3.1-flash-lite'
       ];
 
       const history = [];

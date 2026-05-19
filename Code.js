@@ -128,8 +128,8 @@ function generateRecipesByAI(ingredients) {
     generationConfig: { responseMimeType: "application/json" }
   };
 
-  // 成功実績のある主要モデルのみに絞り、API呼び出し回数を抑えます
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+  // 2026年現在で有効な最新のGeminiモデルリスト（旧1.5系はサービス終了したため、2.5系/2.0系/3.1系を使用します）
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite'];
   const history = [];
   let searchSupported = true; // 無料版キー等の制約でGoogle検索ツールが使えない場合に自動でfalse化します
 

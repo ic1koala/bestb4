@@ -558,7 +558,7 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     userEmail: safeStorage.get('bestb4_user_email'),
-    gasStorageUrl: safeStorage.get('bestb4_gas_url') || 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec',
+    gasStorageUrl: safeStorage.get('bestb4_gas_url') || 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec',
     // APIキーはGAS側で管理
     categories: ["肉", "魚", "野菜", "乳製品・卵", "飲料", "調味料", "作り置き", "缶詰", "お菓子", "インスタント", "冷凍食品", "レトルト", "乾物", "その他"],
     catIcons: {"すべて":"🏠","肉":"🥩","魚":"🐟","野菜":"🥬","乳製品・卵":"🥚","飲料":"🥤","調味料":"🧂","作り置き":"🍱","缶詰":"🥫","お菓子":"🍪","インスタント":"🍜","冷凍食品":"❄️","レトルト":"🍛","乾物":"🥜","その他":"📦"},
@@ -690,7 +690,7 @@
       const btn = document.getElementById('gas-url-btn');
       if (!input || !btn) return;
 
-      const defaultUrl = 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec';
+      const defaultUrl = 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec';
       const currentUrl = safeStorage.get('bestb4_gas_url') || defaultUrl;
 
       input.value = currentUrl;
@@ -736,7 +736,7 @@
     },
 
     resetGasUrlDefault() {
-      const defaultUrl = 'https://script.google.com/macros/s/AKfycbxYaQcFghpJmtfOjcj7YpgpusGd69mwDil4qhcXy4tY8bpeZT9MR5UiW9f8AddrmNs/exec';
+      const defaultUrl = 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec';
       safeStorage.remove('bestb4_gas_url');
       this.gasStorageUrl = defaultUrl;
       this.updateGasUrlInputState();

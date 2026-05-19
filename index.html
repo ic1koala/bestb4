@@ -618,6 +618,9 @@
         this.updateNotifyBtnState();
         this.updateDateLabel();
         this.renderList();
+        if (this.gasStorageUrl) {
+          this.syncItemsInBackground();
+        }
         
         console.log('BestB4 Initialized');
         const splash = document.getElementById('splash-screen');
@@ -1071,6 +1074,10 @@ ${content}
         toastMsg = '使い切りました！';
       }
 
+      // キャッシュとローカルストレージを即座に同期して不整合を防止
+      this._itemsCache = cachedItems;
+      this.saveLocalCache(cachedItems);
+
       // UIを即座に再描画（爆速化）
       this.renderList();
       this.renderCalendar();
@@ -1163,6 +1170,10 @@ ${content}
         archived = cachedItems[idx].archivedAt;
         toastMsg = `${item.name}を使い切りました！`;
       }
+
+      // キャッシュとローカルストレージを即座に同期して不整合を防止
+      this._itemsCache = cachedItems;
+      this.saveLocalCache(cachedItems);
 
       // UIを即座に再描画（爆速化）
       this.renderList();
@@ -1307,14 +1318,14 @@ ${content}
       });
     },
 
-    async getAllItems(useCache = false) {
+    async getAllItems(useCache = true) {
       if (!this.userEmail) return [];
       
       if (!this._itemsCache) {
         this.loadLocalCache();
       }
 
-      if (this.gasStorageUrl) {
+      if (!useCache && this.gasStorageUrl) {
         this.syncItemsInBackground();
       }
 
@@ -1543,22 +1554,17 @@ ${content}
         if (!directionLocked) {
           const absX = Math.abs(deltaX);
           const absY = Math.abs(deltaY);
-          if (absX > 8 || absY > 8) {
-            // 横への動きが強ければ横スワイプ確定としてロック
+          if (absX > 6 || absY > 6) {
             if (absX > absY) {
               directionLocked = 'horizontal';
               isScroll = false;
               isSwiping = true;
-            } else if (absY > absX * 1.5) {
-              // 縦への動きが横の1.5倍以上なら縦スクロール確定としてロック
+            } else {
               directionLocked = 'vertical';
               isScroll = true;
               isSwiping = false;
-              el.style.transform = `translateX(0)`;
+              el.style.transform = 'translateX(0)';
               if (bg) bg.style.opacity = '0';
-              return;
-            } else {
-              // 中間の曖昧な斜め移動は判定を保留してロックしない
               return;
             }
           } else {
@@ -1569,6 +1575,10 @@ ${content}
         if (directionLocked === 'vertical') return;
 
         if (directionLocked === 'horizontal') {
+          // Prevent browser scrolling and bounce effects while swiping horizontally
+          if (e.cancelable) {
+            e.preventDefault();
+          }
           if (deltaX >= 0) {
             currentX = deltaX;
             el.style.transform = `translateX(${currentX}px)`;
@@ -1580,7 +1590,7 @@ ${content}
             if (bg) bg.style.opacity = '0';
           }
         }
-      }, { passive: true });
+      }, { passive: false });
 
       el.addEventListener('touchend', async () => {
         isSwiping = false;
@@ -1591,16 +1601,16 @@ ${content}
           currentX = 0;
           return;
         }
-        el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
         
         // データベースのキャッシュからリアルタイムで正確な数量を取得（属性値の不整合を完全防止）
         const cachedItems = await this.getAllItems(true);
         const item = cachedItems.find(i => i.id === id);
         const qty = item ? item.qty : 1;
-        const threshold = window.innerWidth * 0.6; // Comfortable and secure 60% threshold
+        const threshold = window.innerWidth * 0.8; // User-requested secure 80% threshold
         
         if (currentX > threshold) {
           if (qty > 1) {
+            el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
             el.style.transform = `translateX(0)`;
             // 即座に数量選択ポップアップを起動
             this.showQtyConsumeSelector(id);
@@ -1609,10 +1619,12 @@ ${content}
               el.dataset.swiping = 'false';
             }, 500);
           } else {
+            el.style.transition = 'transform 0.2s ease-in';
             el.style.transform = `translateX(${window.innerWidth}px)`;
             setTimeout(() => this.consumeItem(id), 200);
           }
         } else {
+          el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
           el.style.transform = `translateX(0)`;
           // 500ms間swipingをtrueに維持してゴーストクリックを無効化
           setTimeout(() => el.dataset.swiping = 'false', 500);

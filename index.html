@@ -1503,6 +1503,7 @@ ${content}
       let currentX = 0;
       let isSwiping = false;
       let isScroll = false;
+      let directionLocked = null; // 'horizontal', 'vertical', or null
       const bg = el.previousElementSibling;
 
       el.addEventListener('touchstart', (e) => {
@@ -1512,6 +1513,7 @@ ${content}
         if (bg) bg.style.opacity = '0';
         isSwiping = true;
         isScroll = false;
+        directionLocked = null;
         el.dataset.swiping = 'false';
       }, { passive: true });
 
@@ -1520,25 +1522,44 @@ ${content}
         const deltaX = e.touches[0].clientX - startX;
         const deltaY = e.touches[0].clientY - startY;
 
-        // 縦スクロール判定（縦方向の動きが横方向より大きい場合はスクロールとみなす）
-        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
-          isScroll = true;
-          isSwiping = false;
-          el.style.transform = `translateX(0)`;
-          if (bg) bg.style.opacity = '0';
-          return;
+        if (!directionLocked) {
+          const absX = Math.abs(deltaX);
+          const absY = Math.abs(deltaY);
+          if (absX > 8 || absY > 8) {
+            if (absY > absX) {
+              directionLocked = 'vertical';
+              isScroll = true;
+              isSwiping = false;
+              el.style.transform = `translateX(0)`;
+              if (bg) bg.style.opacity = '0';
+              return;
+            } else {
+              directionLocked = 'horizontal';
+              isScroll = false;
+              isSwiping = true;
+            }
+          }
         }
 
-        if (deltaX > 0) {
-          currentX = deltaX;
-          el.style.transform = `translateX(${currentX}px)`;
-          if (bg) bg.style.opacity = Math.min(currentX / 100, 1);
-          if (currentX > 15) el.dataset.swiping = 'true';
+        if (directionLocked === 'vertical') return;
+
+        if (directionLocked === 'horizontal') {
+          if (deltaX >= 0) {
+            currentX = deltaX;
+            el.style.transform = `translateX(${currentX}px)`;
+            if (bg) bg.style.opacity = Math.min(currentX / 100, 1);
+            if (currentX > 15) el.dataset.swiping = 'true';
+          } else {
+            currentX = 0;
+            el.style.transform = `translateX(0)`;
+            if (bg) bg.style.opacity = '0';
+          }
         }
       }, { passive: true });
 
       el.addEventListener('touchend', () => {
         isSwiping = false;
+        directionLocked = null;
         if (isScroll) {
           el.style.transform = `translateX(0)`;
           el.dataset.swiping = 'false';

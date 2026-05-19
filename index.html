@@ -1744,16 +1744,11 @@
       
       const prompt = "Extract the food item name, its expiration date, and infer the most suitable category from this image. Output ONLY valid JSON in this format: {\"name\": \"item name\", \"exp\": \"YYYY-MM-DD\", \"cat\": \"category name\"}. Categories MUST be one of: [肉, 魚, 野菜, 乳製品・卵, 飲料, 調味料, 作り置き, 缶詰, お菓子, インスタント, 冷凍食品, レトルト, 乾物, その他]. If unclear, use 'その他'.";
       
-      // 型番付きを含む全バリエーション試行リスト
+      // 型番付きを含む主要な3つのモデルのみに絞り、API呼び出し回数を削減して429エラーを防止します
       const models = [
         'gemini-2.0-flash',
         'gemini-1.5-flash',
-        'gemini-1.5-flash-001',
-        'gemini-1.5-flash-002',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-flash-8b',
-        'gemini-1.5-pro',
-        'gemini-1.0-pro'
+        'gemini-1.5-flash-8b'
       ];
 
       const history = [];
@@ -1781,10 +1776,9 @@
       };
 
       for (const m of models) {
-        // 各モデルにつき：v1beta(JSON) -> v1beta(標準) -> v1(標準) の3段階で試行
+        // API制限（15RPM）を考慮し、最も成功率の高い2通りの設定のみを試行します
         const configs = [
           { v: 'v1beta', j: true },
-          { v: 'v1beta', j: false },
           { v: 'v1', j: false }
         ];
 
@@ -1805,9 +1799,10 @@
             }
           } catch (err) {
             if (err.status === 429) {
-              const waitMsg = "ERR-OCR-429: 利用制限(Quota)を超過しました。1分ほど時間を置いてから再度お試しください。";
-              history.push(`!! ${m}: 429 (LIMIT EXCEEDED) !!`);
-              throw new Error(`${waitMsg}\n\n【詳細ログ】\n${history.join('\n')}`);
+              const errStr = `!! ${m}: 429 (LIMIT EXCEEDED) !!`;
+              console.warn(`[AI-Quota] ${errStr}`);
+              history.push(errStr);
+              continue; // 429エラーが発生しても即時中断せず、他のモデルへのフォールバックを継続します
             }
             const errStr = `${m}(${conf.v},j:${conf.j}): ${err.status||'ERR'} - ${err.message?.substring(0, 40)}`;
             console.warn(`[AI-Failed] ${errStr}`);
@@ -1819,7 +1814,11 @@
       }
 
       const historySummary = history.join('\n');
-      throw new Error(`ERR-OCR-00X: 全てのAI試行が失敗しました。\n\n【詳細ログ】\n${historySummary}`);
+      const has429 = historySummary.includes('429');
+      const errMsg = has429 
+        ? `ERR-OCR-429: 利用制限(Quota)を超過しました。1分ほど時間を置いてから再度お試しください。\n\n【詳細ログ】\n${historySummary}`
+        : `ERR-OCR-00X: 全てのAI試行が失敗しました。\n\n【詳細ログ】\n${historySummary}`;
+      throw new Error(errMsg);
     },
 
     parseGeminiResult(res) {

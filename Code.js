@@ -128,22 +128,28 @@ function generateRecipesByAI(ingredients) {
     generationConfig: { responseMimeType: "application/json" }
   };
 
-  // 試行するモデルとペイロードの設定（鉄壁のフォールバック）
-  // 成功実績のあるモデルリスト
-  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  // 成功実績のある主要モデルのみに絞り、API呼び出し回数を抑えます
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
   const history = [];
+  let searchSupported = true; // 無料版キー等の制約でGoogle検索ツールが使えない場合に自動でfalse化します
 
   for (let i = 0; i < models.length; i++) {
     const m = models[i];
-    // 各モデルごとに3段階の試行を行う
+    // API制限（15RPM）を考慮し、最も成功率の高い設定をフォールバックとして試行します
     const configs = [
-      { v: 'v1beta', j: true, s: true }, // JSONあり、検索あり
-      { v: 'v1beta', j: false, s: true },// JSONなし、検索あり
-      { v: 'v1', j: false, s: false }    // JSONなし、検索なし案（最安定）
+      { v: 'v1beta', j: true, s: true }, // JSONあり、ウェブ検索あり
+      { v: 'v1beta', j: true, s: false },// JSONあり、ウェブ検索なし
+      { v: 'v1', j: false, s: false }    // JSONなし、ウェブ検索なし（最も安定した標準仕様）
     ];
 
     for (let k = 0; k < configs.length; k++) {
       const conf = configs[k];
+      
+      // すでに検索ツールが使えないと判明している場合は、検索付き設定の試行をスキップします
+      if (conf.s && !searchSupported) {
+        continue;
+      }
+
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: conf.j ? { responseMimeType: "application/json" } : {}
@@ -169,8 +175,15 @@ function generateRecipesByAI(ingredients) {
           return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON);
         }
         
-        const errStr = m + "(" + conf.v + ",j:" + conf.j + "): " + code;
-        if (code !== 404) { // 404以外の有意義なエラーを記録
+        // 検索ツール（googleSearchRetrieval）に対応していないキー（無料版キー等）の場合、エラーコード400/403、
+        // または特定のエラー文言を検知して自動的にウェブ検索付き試行を無効化します（無駄なAPI呼び出しを抑止）
+        if (conf.s && (code === 400 || code === 403 || text.includes("tool") || text.includes("search") || text.includes("permission") || text.includes("not allowed") || text.includes("not supported"))) {
+          searchSupported = false;
+          console.warn("Search grounding is not supported by this API key. Disabling search grounding configs.");
+        }
+        
+        const errStr = m + "(" + conf.v + ",j:" + conf.j + ",s:" + conf.s + "): " + code;
+        if (code !== 404) {
           history.push(errStr + " " + text.substring(0, 50));
         }
         

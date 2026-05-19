@@ -1557,7 +1557,7 @@ ${content}
         }
       }, { passive: true });
 
-      el.addEventListener('touchend', () => {
+      el.addEventListener('touchend', async () => {
         isSwiping = false;
         directionLocked = null;
         if (isScroll) {
@@ -1568,7 +1568,10 @@ ${content}
         }
         el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
         
-        const qty = parseInt(el.dataset.qty || '1', 10);
+        // データベースのキャッシュからリアルタイムで正確な数量を取得（属性値の不整合を完全防止）
+        const cachedItems = await this.getAllItems(true);
+        const item = cachedItems.find(i => i.id === id);
+        const qty = item ? item.qty : 1;
         const threshold = window.innerWidth * 0.2; // 20% threshold
         
         if (currentX > threshold) {

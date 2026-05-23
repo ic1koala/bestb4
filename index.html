@@ -26,6 +26,42 @@
       --splash-bg: #ccff99;
     }
 
+    /* TIPS Accordion & Shopping List Premium CSS */
+    .tips-accordion {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tips-accordion.accordion-open {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: rgba(16, 185, 129, 0.3) !important;
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.08) !important;
+    }
+    
+    #shopping-list-items .glass-card input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #shopping-list-items .glass-card input[type="checkbox"]:checked {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+    #shopping-list-items .glass-card input[type="checkbox"]:checked::after {
+      content: '✔';
+      font-size: 12px;
+      color: white;
+      font-weight: bold;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Noto Sans JP', sans-serif; -webkit-tap-highlight-color: transparent; }
     
     html, body {
@@ -331,27 +367,70 @@
 
   <!-- 5. Food Longevity TIPS Screen -->
   <div id="recipe-screen" class="screen" style="padding:60px 24px 100px; overflow-y:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h2 style="font-weight:900; font-size:1.6rem; margin:0; color:#1e293b;">長持ちTIPS 💡</h2>
-      <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:12px; gap:4px;">
-        <button id="tips-all-btn" onclick="app.setTipsTab('all')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s; outline:none;">すべて</button>
-        <button id="tips-fav-btn" onclick="app.setTipsTab('fav')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:transparent; color:#64748b; transition:all 0.2s; outline:none;">❤️ お気に入り</button>
-      </div>
+    <!-- 画面メインサブタブ (TIPS 💡 vs 買い物 🛒) -->
+    <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:16px; gap:4px; margin-bottom:24px;">
+      <button id="subtab-tips-btn" onclick="app.setRecipeSubTab('tips')" style="flex:1; border:none; padding:10px; border-radius:12px; font-size:0.85rem; font-weight:800; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s; outline:none;">長持ちTIPS 💡</button>
+      <button id="subtab-shop-btn" onclick="app.setRecipeSubTab('shop')" style="flex:1; border:none; padding:10px; border-radius:12px; font-size:0.85rem; font-weight:800; cursor:pointer; background:transparent; color:#64748b; transition:all 0.2s; outline:none;">買い物リスト 🛒</button>
     </div>
-    
-    <div style="margin-bottom:28px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">冷蔵庫にある食材カテゴリ</p>
-      <div id="recipe-ingredients" style="display:flex; flex-wrap:wrap; gap:8px;">
-        <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材カテゴリを読み込んでいます...</p>
+
+    <!-- TIPSサブページ -->
+    <div id="tips-subpage-container" style="display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-weight:900; font-size:1.4rem; margin:0; color:#1e293b;">長持ちTIPS 💡</h2>
+        <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:12px; gap:4px;">
+          <button id="tips-all-btn" onclick="app.setTipsTab('all')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s; outline:none;">すべて</button>
+          <button id="tips-fav-btn" onclick="app.setTipsTab('fav')" style="border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; background:transparent; color:#64748b; transition:all 0.2s; outline:none;">❤️ お気に入り</button>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:28px;">
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">冷蔵庫にある食材カテゴリ</p>
+        <div id="recipe-ingredients" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <p style="font-size:0.75rem; color:var(--text-muted); padding:10px;">食材カテゴリを読み込んでいます...</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">鮮度を保つコツ・裏ワザ</p>
+      </div>
+      
+      <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
+        <!-- TIPSカードがここに入ります -->
       </div>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">鮮度を保つコツ・裏ワザ</p>
-    </div>
-    
-    <div id="recipe-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:40px;">
-      <!-- TIPSカードがここに入ります -->
+    <!-- 買い物リストサブページ -->
+    <div id="shopping-subpage-container" style="display:none; flex-direction:column; gap:20px;">
+      <h2 style="font-weight:900; font-size:1.4rem; margin:0; color:#1e293b; margin-bottom:4px;">買い物リスト 🛒</h2>
+      
+      <!-- 買い物リスト入力 -->
+      <div class="glass-card" style="padding:16px; border-radius:24px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); display:flex; gap:8px;">
+        <input type="text" id="shopping-input" placeholder="買うものを入力..." onkeypress="if(event.key==='Enter')app.addShoppingItem()" style="flex:1; padding:12px; border-radius:14px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600; background:rgba(255,255,255,0.9);">
+        <button onclick="app.addShoppingItem()" style="padding:12px 18px; border-radius:14px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.85rem; cursor:pointer; outline:none;">追加</button>
+      </div>
+      
+      <!-- 買い物リスト一覧 -->
+      <div>
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">買うものリスト 📝</p>
+        <div id="shopping-list-items" style="display:flex; flex-direction:column; gap:10px;">
+          <!-- ここに買い物アイテムが入る -->
+        </div>
+      </div>
+      
+      <!-- いつも買うもの（定番品） -->
+      <div style="margin-top:15px; margin-bottom:30px;">
+        <p style="font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:12px;">いつも買うもの（定番品） ⭐</p>
+        
+        <!-- 定番品追加 -->
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <input type="text" id="always-buy-input" placeholder="定番品を登録..." onkeypress="if(event.key==='Enter')app.addAlwaysBuy()" style="flex:1; padding:10px 12px; border-radius:12px; border:1px solid #e2e8f0; outline:none; font-size:0.8rem; font-weight:600; background:rgba(255,255,255,0.9);">
+          <button onclick="app.addAlwaysBuy()" style="padding:10px 14px; border-radius:12px; border:none; background:#6366f1; color:#fff; font-weight:800; font-size:0.75rem; cursor:pointer; outline:none;">登録</button>
+        </div>
+
+        <div id="always-buy-items" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <!-- ここに定番品バッジが入る -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -588,6 +667,7 @@
   const app = {
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
+    currentRecipeSubTab: "tips",
     userEmail: safeStorage.get('bestb4_user_email'),
     gasStorageUrl: safeStorage.get('bestb4_gas_url') || 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec',
     // APIキーはGAS側で管理
@@ -917,16 +997,12 @@
     },
 
     async shareTip(title, content) {
-      const text = `BestB4食材長持ちTIPS:
-【${title}】
-${content}
-#BestB4 #食品ロス削減`;
+      const text = `【${title}】\n${content}`;
       if (navigator.share) {
         try {
           await navigator.share({
             title: title,
-            text: text,
-            url: window.location.href
+            text: text
           });
         } catch (e) {
           if (e.name !== 'AbortError') {
@@ -935,7 +1011,7 @@ ${content}
         }
       } else {
         try {
-          await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+          await navigator.clipboard.writeText(text);
           this.showToast('TIPSの内容をコピーしました！');
         } catch (err) {
           this.showToast('コピーできませんでした');
@@ -961,6 +1037,201 @@ ${content}
         }
       }
       this.renderRecipes();
+    },
+
+    toggleAccordion(card) {
+      const content = card.querySelector('.accordion-content');
+      const arrow = card.querySelector('.accordion-arrow');
+      const title = card.querySelector('.accordion-title');
+      
+      const isOpen = card.classList.contains('accordion-open');
+      
+      if (isOpen) {
+        card.classList.remove('accordion-open');
+        content.style.maxHeight = '0';
+        content.style.opacity = '0';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+        if (title) title.style.whiteSpace = 'nowrap';
+      } else {
+        card.classList.add('accordion-open');
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.opacity = '1';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (title) title.style.whiteSpace = 'normal';
+      }
+    },
+
+    setRecipeSubTab(tab) {
+      const tipsBtn = document.getElementById('subtab-tips-btn');
+      const shopBtn = document.getElementById('subtab-shop-btn');
+      const tipsPage = document.getElementById('tips-subpage-container');
+      const shopPage = document.getElementById('shopping-subpage-container');
+      
+      if (!tipsBtn || !shopBtn || !tipsPage || !shopPage) return;
+      
+      if (tab === 'tips') {
+        tipsBtn.style.background = 'var(--primary)';
+        tipsBtn.style.color = '#fff';
+        shopBtn.style.background = 'transparent';
+        shopBtn.style.color = '#64748b';
+        tipsPage.style.display = 'flex';
+        shopPage.style.display = 'none';
+        this.renderRecipes();
+      } else {
+        shopBtn.style.background = 'var(--primary)';
+        shopBtn.style.color = '#fff';
+        tipsBtn.style.background = 'transparent';
+        tipsBtn.style.color = '#64748b';
+        tipsPage.style.display = 'none';
+        shopPage.style.display = 'flex';
+        this.renderShoppingList();
+      }
+    },
+
+    getShoppingList() {
+      try {
+        return JSON.parse(localStorage.getItem('bestb4_shopping_list')) || [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveShoppingList(list) {
+      localStorage.setItem('bestb4_shopping_list', JSON.stringify(list));
+    },
+
+    getAlwaysBuyList() {
+      try {
+        return JSON.parse(localStorage.getItem('bestb4_always_buy_list')) || [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveAlwaysBuyList(list) {
+      localStorage.setItem('bestb4_always_buy_list', JSON.stringify(list));
+    },
+
+    renderShoppingList() {
+      const container = document.getElementById('shopping-list-items');
+      const alwaysContainer = document.getElementById('always-buy-items');
+      if (!container || !alwaysContainer) return;
+      
+      // 1. 買い物リストの描画
+      const list = this.getShoppingList();
+      
+      // 未チェックを上、チェック済みを下にする優先順位ソート
+      const sortedList = [...list].sort((a, b) => {
+        if (a.checked === b.checked) return 0;
+        return a.checked ? 1 : -1;
+      });
+      
+      if (sortedList.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem; background:rgba(255,255,255,0.4); border-radius:16px;">買うものはありません</p>`;
+      } else {
+        container.innerHTML = sortedList.map(item => `
+          <div class="glass-card" style="padding:14px 18px; border-radius:18px; display:flex; justify-content:space-between; align-items:center; background:${item.checked ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)'}; border:1px solid rgba(255,255,255,0.8); transition:all 0.3s ease; opacity:${item.checked ? '0.6' : '1'}; box-shadow:0 4px 15px rgba(0,0,0,0.01);">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;" onclick="app.toggleShoppingItem('${item.id}')">
+              <input type="checkbox" ${item.checked ? 'checked' : ''} style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;" onclick="event.stopPropagation(); app.toggleShoppingItem('${item.id}')">
+              <span style="font-weight:700; font-size:0.95rem; text-decoration:${item.checked ? 'line-through' : 'none'}; color:${item.checked ? 'var(--text-muted)' : '#1e293b'}; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; cursor:pointer;">
+                ${item.name}
+              </span>
+            </div>
+            <button onclick="app.deleteShoppingItem('${item.id}')" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:6px; outline:none; display:flex; align-items:center; justify-content:center; transition:transform 0.1s active;">
+              🗑️
+            </button>
+          </div>
+        `).join('');
+      }
+      
+      // 2. いつも買うもの（定番品）の描画
+      const alwaysList = this.getAlwaysBuyList();
+      if (alwaysList.length === 0) {
+        alwaysContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.75rem; padding:10px 0;">定番品は登録されていません</p>`;
+      } else {
+        alwaysContainer.innerHTML = alwaysList.map(item => `
+          <div style="background:rgba(99, 102, 241, 0.08); border:1px solid rgba(99, 102, 241, 0.15); padding:6px 12px; border-radius:30px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.75rem; font-weight:800; color:#4f46e5; transition:all 0.2s;" onclick="app.addAlwaysToShopping('${item.name}')">
+            <span>➕ ${item.name}</span>
+            <span onclick="event.stopPropagation(); app.deleteAlwaysBuy('${item.id}')" style="color:#ef4444; cursor:pointer; font-weight:bold; font-size:0.7rem; padding:2px 4px;">✕</span>
+          </div>
+        `).join('');
+      }
+    },
+
+    addShoppingItem(name = '') {
+      let itemName = name;
+      if (!itemName) {
+        const input = document.getElementById('shopping-input');
+        if (!input) return;
+        itemName = input.value.trim();
+        if (!itemName) return;
+        input.value = '';
+      }
+      
+      const list = this.getShoppingList();
+      list.push({
+        id: 'shop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        name: itemName,
+        checked: false
+      });
+      
+      this.saveShoppingList(list);
+      this.renderShoppingList();
+    },
+
+    toggleShoppingItem(id) {
+      const list = this.getShoppingList();
+      const item = list.find(i => String(i.id) === String(id));
+      if (item) {
+        item.checked = !item.checked;
+        this.saveShoppingList(list);
+        this.renderShoppingList();
+      }
+    },
+
+    deleteShoppingItem(id) {
+      let list = this.getShoppingList();
+      list = list.filter(i => String(i.id) !== String(id));
+      this.saveShoppingList(list);
+      this.renderShoppingList();
+    },
+
+    addAlwaysBuy() {
+      const input = document.getElementById('always-buy-input');
+      if (!input) return;
+      const name = input.value.trim();
+      if (!name) return;
+      
+      const list = this.getAlwaysBuyList();
+      
+      // 同名の重複登録を防止
+      if (list.some(i => i.name === name)) {
+        this.showToast('既に定番品に登録されています');
+        return;
+      }
+      
+      list.push({
+        id: 'always_' + Date.now(),
+        name: name
+      });
+      
+      this.saveAlwaysBuyList(list);
+      input.value = '';
+      this.renderShoppingList();
+      this.showToast('定番品に登録しました');
+    },
+
+    addAlwaysToShopping(name) {
+      this.addShoppingItem(name);
+      this.showToast(`${name}を買い物リストに追加しました 🛒`);
+    },
+
+    deleteAlwaysBuy(id) {
+      let list = this.getAlwaysBuyList();
+      list = list.filter(i => String(i.id) !== String(id));
+      this.saveAlwaysBuyList(list);
+      this.renderShoppingList();
+      this.showToast('定番品から削除しました');
     },
 
     async renderRecipes(forceUpdate = false) {
@@ -1015,23 +1286,26 @@ ${content}
       container.innerHTML = tips.map(tip => {
         const isFav = favs.includes(tip.title);
         return `
-          <div class="glass-card" style="padding:22px; border-radius:24px; display:flex; flex-direction:column; gap:12px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); position:relative;">
+          <div class="glass-card tips-accordion" style="padding:16px 20px; border-radius:24px; display:flex; flex-direction:column; gap:8px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); position:relative; cursor:pointer;" onclick="app.toggleAccordion(this)">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.65rem; font-weight:800; background:rgba(16, 185, 129, 0.1); color:var(--primary); padding:4px 10px; border-radius:30px;">
-                ${this.catIcons[tip.cat] || '📦'} ${tip.cat}の保存
-              </span>
-              <div style="display:flex; gap:8px;">
+              <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:0; padding-right:12px;">
+                <span style="font-size:0.65rem; font-weight:800; background:rgba(16, 185, 129, 0.1); color:var(--primary); padding:4px 10px; border-radius:30px; width:fit-content;">
+                  ${this.catIcons[tip.cat] || '📦'} ${tip.cat}の保存
+                </span>
+                <div style="font-weight:900; font-size:1.05rem; color:#1e293b; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="accordion-title">${tip.title}</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation()">
                 <button onclick="app.toggleTipFavorite('${tip.title}')" style="background:none; border:none; font-size:1.2rem; cursor:pointer; padding:4px; line-height:1; outline:none; transition:transform 0.1s active;">
                   ${isFav ? '❤️' : '🤍'}
                 </button>
                 <button onclick="app.shareTip('${tip.title.replace(/'/g, "\\'")}', '${tip.content.replace(/'/g, "\\'")}')" style="background:rgba(99, 102, 241, 0.1); color:var(--primary); border:none; padding:4px 10px; border-radius:12px; font-size:0.65rem; font-weight:800; display:flex; align-items:center; gap:4px; cursor:pointer; outline:none; transition:0.2s;">
                   <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg> 共有
                 </button>
+                <span class="accordion-arrow" style="display:inline-block; font-size:0.8rem; color:#64748b; transition:transform 0.3s ease; margin-left:4px;">▼</span>
               </div>
             </div>
-            <div>
-              <div style="font-weight:900; font-size:1.05rem; color:#1e293b; margin-bottom:6px; line-height:1.35;">${tip.title}</div>
-              <p style="font-size:0.8rem; color:#475569; line-height:1.6; margin:0; font-weight:500;">${tip.content}</p>
+            <div class="accordion-content" style="max-height:0; overflow:hidden; transition:max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity:0;">
+              <p style="font-size:0.8rem; color:#475569; line-height:1.6; margin:0; padding-top:8px; font-weight:500;">${tip.content}</p>
             </div>
           </div>
         `;
@@ -1310,7 +1584,10 @@ ${content}
       const navIds = {'list-screen':0, 'calendar-screen':1, 'recipe-screen':2, 'settings-screen':3};
       if(id === 'list-screen') this.renderList();
       if(id === 'calendar-screen') this.renderCalendar();
-      if (id === 'recipe-screen') this.renderRecipes();
+      if (id === 'recipe-screen') {
+        const subTab = this.currentRecipeSubTab || 'tips';
+        this.setRecipeSubTab(subTab);
+      }
       if (id === 'settings-screen') {
           this.renderHistory();
           this.updateGasUrlInputState();
@@ -1486,9 +1763,9 @@ ${content}
         
         // データベースのキャッシュからリアルタイムで正確な数量を取得（属性値の不整合を完全防止）
         const cachedItems = await this.getAllItems(true);
-        const item = cachedItems.find(i => i.id === id);
+        const item = cachedItems.find(i => String(i.id) === String(id));
         const qty = item ? item.qty : 1;
-        const threshold = window.innerWidth * 0.8; // User-requested secure 80% threshold
+        const threshold = window.innerWidth * 0.45; // 操作性と追従性を考慮した最適な45%閾値（反応しない問題を解決）
         
         if (currentX > threshold) {
           el.style.transition = 'transform 0.2s ease-in';
@@ -1511,7 +1788,15 @@ ${content}
       const toggleBtn = document.getElementById('history-toggle');
       if (!container) return;
       const allItems = await this.getAllItems();
-      const archived = allItems.filter(i => i.archivedAt).sort((a,b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+      
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const archived = allItems.filter(i => {
+        if (!i.archivedAt) return false;
+        const archivedDate = new Date(i.archivedAt);
+        return archivedDate >= oneMonthAgo;
+      }).sort((a,b) => new Date(b.archivedAt) - new Date(a.archivedAt));
       
       if (archived.length === 0) {
         container.innerHTML = `<p style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem;">履歴はありません</p>`;
@@ -1541,24 +1826,39 @@ ${content}
     async restoreItem(id) {
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
 
+      // 1. 【楽観的更新】即座にキャッシュを更新してUIに反映
+      const cachedItems = await this.getAllItems(true);
+      const idx = cachedItems.findIndex(i => String(i.id) === String(id));
+      if (idx !== -1) {
+        cachedItems[idx].archivedAt = ''; // 復元
+        if (parseInt(cachedItems[idx].qty) <= 0) {
+          cachedItems[idx].qty = 1; // 数量が0以下の場合は1にリセット
+        }
+        
+        this._itemsCache = cachedItems;
+        this.saveLocalCache(cachedItems);
+        
+        this.showToast('リストに戻しました');
+        this.renderList();
+        this.renderHistory();
+        this.renderCalendar();
+      }
+
+      // 2. 【バックグラウンド同期】GAS側のデータを更新
       try {
-        const resp = await fetch(this.gasStorageUrl, {
+        fetch(this.gasStorageUrl, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
             action: 'update',
             email: this.userEmail,
             id: id,
+            qty: idx !== -1 ? cachedItems[idx].qty : 1,
             archivedAt: '' // Set to empty to unarchive
           })
         });
-
-        this.showToast('リストに戻しました');
-        this.renderList();
-        this.renderHistory();
       } catch (e) {
         console.error('Restore Item Error:', e);
-        this.showToast('復元中にエラーが発生しました');
       }
     },
 

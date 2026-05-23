@@ -29,10 +29,35 @@ function getActiveSpreadsheet() {
 } 
 
 /**
+ * 不要になった古いトリガー（関数が存在しない、または使用していないトリガー）をクリーンアップします。
+ */
+function deleteOrphanedTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    // 現在稼働を許可する正規のトリガー関数名のみ
+    const allowedFunctions = ["dailyReminder"];
+    
+    for (let i = 0; i < triggers.length; i++) {
+      const trigger = triggers[i];
+      const funcName = trigger.getHandlerFunction();
+      if (!allowedFunctions.includes(funcName)) {
+        console.log("Deleting orphaned or old trigger: " + funcName);
+        ScriptApp.deleteTrigger(trigger);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to delete orphaned triggers: " + err.toString());
+  }
+}
+
+/**
  * 毎日決まった時間に実行する通知関数
  * GASエディタの「トリガー（時計アイコン）」から、1日1回実行するように設定してください。
  */
 function dailyReminder() {
+  // 古い不要トリガーを自動クリーンアップ
+  deleteOrphanedTriggers();
+
   const ss = getActiveSpreadsheet();
   const sheet = ss.getSheetByName("在庫リスト") || ss.getSheets()[0];
   const rows = sheet.getDataRange().getValues();
@@ -79,6 +104,9 @@ function dailyReminder() {
 }
 
 function doGet(e) {
+  // 古い不要トリガーを自動クリーンアップ
+  deleteOrphanedTriggers();
+
   const action = e.parameter.action;
 
   if (action === "getApiKey") {

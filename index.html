@@ -365,6 +365,21 @@
     </div>
   </div>
 
+  <!-- 数量消費選択オーバーレイ -->
+  <div id="consume-qty-overlay" class="overlay" onclick="app.closeConsumeQty()">
+    <div class="entry-card" onclick="event.stopPropagation()" style="max-width:320px; text-align:center; padding:24px; border-radius:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-weight:900; font-size:1.15rem; color:#1e293b; margin:0;">消費する数量を選択</h3>
+        <div onclick="app.closeConsumeQty()" style="font-size:1.2rem; cursor:pointer; color:var(--text-muted);">✕</div>
+      </div>
+      <p id="consume-qty-item-name" style="font-size:0.85rem; font-weight:700; color:var(--primary); background:rgba(16, 185, 129, 0.08); padding:8px 12px; border-radius:12px; margin-bottom:20px; text-align:left;"></p>
+      <div id="consume-qty-buttons" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:20px; max-height:180px; overflow-y:auto; padding:4px;">
+        <!-- ここに1〜qtyのボタンが動的に挿入される -->
+      </div>
+      <button onclick="app.closeConsumeQty()" style="width:100%; padding:12px; border-radius:14px; background:#f1f5f9; color:#64748b; border:none; font-weight:800; cursor:pointer; outline:none;">キャンセル</button>
+    </div>
+  </div>
+
   <!-- 5. Food Longevity TIPS Screen -->
   <div id="recipe-screen" class="screen" style="padding:60px 24px 100px; overflow-y:auto;">
     <!-- 画面メインサブタブ (TIPS 💡 vs 買い物 🛒) -->
@@ -404,9 +419,10 @@
       <h2 style="font-weight:900; font-size:1.4rem; margin:0; color:#1e293b; margin-bottom:4px;">買い物リスト 🛒</h2>
       
       <!-- 買い物リスト入力 -->
-      <div class="glass-card" style="padding:16px; border-radius:24px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); display:flex; gap:8px;">
-        <input type="text" id="shopping-input" placeholder="買うものを入力..." onkeypress="if(event.key==='Enter')app.addShoppingItem()" style="flex:1; padding:12px; border-radius:14px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600; background:rgba(255,255,255,0.9);">
-        <button onclick="app.addShoppingItem()" style="padding:12px 18px; border-radius:14px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.85rem; cursor:pointer; outline:none;">追加</button>
+      <div class="glass-card" style="padding:16px; border-radius:24px; background:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.85); box-shadow:0 10px 25px rgba(0,0,0,0.03); display:flex; gap:8px; align-items:center;">
+        <input type="text" id="shopping-input" placeholder="買うものを入力..." onkeypress="if(event.key==='Enter')app.addShoppingItem()" style="flex:1; min-width:0; padding:12px; border-radius:14px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600; background:rgba(255,255,255,0.9);">
+        <input type="number" id="shopping-qty" value="1" min="1" style="width:60px; padding:12px 6px; border-radius:14px; border:1px solid #e2e8f0; outline:none; font-size:0.9rem; font-weight:600; text-align:center; background:rgba(255,255,255,0.9);">
+        <button onclick="app.addShoppingItem()" style="padding:12px 18px; border-radius:14px; border:none; background:var(--primary); color:#fff; font-weight:800; font-size:0.85rem; cursor:pointer; outline:none; flex-shrink:0;">追加</button>
       </div>
       
       <!-- 買い物リスト一覧 -->
@@ -668,6 +684,8 @@
     db: null, stream: null, editingId: null, currentCat: "すべて",
     _itemsCache: null, // 高速化用の内部データキャッシュ
     currentRecipeSubTab: "tips",
+    consumingItemId: null,
+    consumingCardEl: null,
     userEmail: safeStorage.get('bestb4_user_email'),
     gasStorageUrl: safeStorage.get('bestb4_gas_url') || 'https://script.google.com/macros/s/AKfycbzXBUv50mcyx9uCpsnioxd6HSZwtmFT3XdDDIsFb9dMcdXKx_2WNfwu8s_txKb-3saV/exec',
     // APIキーはGAS側で管理
@@ -1134,7 +1152,7 @@
             <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;" onclick="app.toggleShoppingItem('${item.id}')">
               <input type="checkbox" ${item.checked ? 'checked' : ''} style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;" onclick="event.stopPropagation(); app.toggleShoppingItem('${item.id}')">
               <span style="font-weight:700; font-size:0.95rem; text-decoration:${item.checked ? 'line-through' : 'none'}; color:${item.checked ? 'var(--text-muted)' : '#1e293b'}; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; cursor:pointer;">
-                ${item.name}
+                ${item.name} <span style="font-size:0.8rem; color:var(--text-muted); margin-left:4px; font-weight:600;">(${item.qty || 1})</span>
               </span>
             </div>
             <button onclick="app.deleteShoppingItem('${item.id}')" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:6px; outline:none; display:flex; align-items:center; justify-content:center; transition:transform 0.1s active;">
@@ -1158,20 +1176,29 @@
       }
     },
 
-    addShoppingItem(name = '') {
+    addShoppingItem(name = '', qty = 0) {
       let itemName = name;
+      let itemQty = qty;
+      
       if (!itemName) {
         const input = document.getElementById('shopping-input');
+        const qtyInput = document.getElementById('shopping-qty');
         if (!input) return;
         itemName = input.value.trim();
         if (!itemName) return;
+        
+        itemQty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
         input.value = '';
+        if (qtyInput) qtyInput.value = '1';
+      } else if (itemQty <= 0) {
+        itemQty = 1;
       }
       
       const list = this.getShoppingList();
       list.push({
         id: 'shop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         name: itemName,
+        qty: itemQty,
         checked: false
       });
       
@@ -1313,7 +1340,72 @@
     },
 
 
-    async consumeItem(id) {
+    async prepareConsume(id, cardEl = null) {
+      if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
+
+      const cachedItems = await this.getAllItems(true);
+      const item = cachedItems.find(i => String(i.id) === String(id));
+      if (!item) return;
+
+      this.consumingItemId = id;
+      this.consumingCardEl = cardEl;
+
+      // 在庫数が1つの場合はダイアログを出さずに即座に1つ消費（全量消費）
+      if (parseInt(item.qty || 1) <= 1) {
+        await this.consumeItem(id, 1);
+        return;
+      }
+
+      // 在庫数が2つ以上の場合は数量消費選択ダイアログを表示
+      const overlay = document.getElementById('consume-qty-overlay');
+      const buttonsContainer = document.getElementById('consume-qty-buttons');
+      const nameLabel = document.getElementById('consume-qty-item-name');
+
+      if (!overlay || !buttonsContainer || !nameLabel) {
+        // 万が一DOMが無い場合はフォールバックとして全量消費
+        await this.consumeItem(id, item.qty);
+        return;
+      }
+
+      nameLabel.innerText = `${item.name} (現在庫: ${item.qty})`;
+      buttonsContainer.innerHTML = '';
+
+      for (let i = 1; i <= item.qty; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.style.cssText = 'padding:12px; border-radius:12px; border:1px solid #cbd5e1; background:#fff; color:#1e293b; font-weight:800; font-size:0.95rem; cursor:pointer; outline:none; transition:all 0.15s; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.02);';
+        
+        btn.onclick = () => app.consumeItem(id, i);
+        // Active効果
+        btn.ontouchstart = () => { btn.style.background = 'var(--primary)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--primary)'; };
+        btn.onmousedown = () => { btn.style.background = 'var(--primary)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--primary)'; };
+
+        buttonsContainer.appendChild(btn);
+      }
+
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.classList.add('active'), 50);
+    },
+
+    closeConsumeQty() {
+      const overlay = document.getElementById('consume-qty-overlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.style.display = 'none', 300);
+      }
+
+      // キャンセル時はスワイプされたカードを元の位置に戻す
+      if (this.consumingCardEl) {
+        this.consumingCardEl.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+        this.consumingCardEl.style.transform = 'translateX(0)';
+        setTimeout(() => this.consumingCardEl.dataset.swiping = 'false', 300);
+      }
+
+      this.consumingItemId = null;
+      this.consumingCardEl = null;
+    },
+
+    async consumeItem(id, qtyToConsume = 1) {
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
 
       // 1. 【楽観的更新】即座にキャッシュを更新してUIに反映
@@ -1322,12 +1414,21 @@
       if (idx === -1) return;
 
       const item = cachedItems[idx];
-      let archived = new Date().toISOString();
-      let toastMsg = `${item.name}を使い切りました！`;
+      const currentQty = parseInt(item.qty) || 1;
+      let archived = '';
+      let toastMsg = '';
 
-      // 完全に消費（削除）する
-      cachedItems[idx].qty = 0;
-      cachedItems[idx].archivedAt = archived;
+      if (qtyToConsume >= currentQty) {
+        // 全量消費
+        cachedItems[idx].qty = 0;
+        archived = new Date().toISOString();
+        cachedItems[idx].archivedAt = archived;
+        toastMsg = `${item.name}を使い切りました！`;
+      } else {
+        // 一部消費（差し引き）
+        cachedItems[idx].qty = currentQty - qtyToConsume;
+        toastMsg = `${item.name}を ${qtyToConsume} 個消費しました（残り ${cachedItems[idx].qty} 個）`;
+      }
 
       // キャッシュとローカルストレージを即座に同期して不整合を防止
       this._itemsCache = cachedItems;
@@ -1338,6 +1439,12 @@
       this.renderCalendar();
       this.showToast(toastMsg);
 
+      // もし全量消費でスワイプカードがあればスライドアウトアニメーションを完了させる
+      if (qtyToConsume >= currentQty && this.consumingCardEl) {
+        this.consumingCardEl.style.transition = 'transform 0.2s ease-in';
+        this.consumingCardEl.style.transform = `translateX(${window.innerWidth}px)`;
+      }
+
       // 2. 【バックグラウンド同期】GAS側のデータを更新
       try {
         fetch(this.gasStorageUrl, {
@@ -1347,7 +1454,7 @@
             action: 'update',
             email: this.userEmail,
             id: item.id,
-            qty: 0,
+            qty: cachedItems[idx].qty,
             archivedAt: archived
           })
         });
@@ -1356,6 +1463,9 @@
       } catch (e) {
         console.error('GAS Background Sync Error:', e);
       }
+
+      // ダイアログを閉じる
+      this.closeConsumeQty();
     },
 
     toggleUsage() {
@@ -1713,12 +1823,13 @@
         if (!directionLocked) {
           const absX = Math.abs(deltaX);
           const absY = Math.abs(deltaY);
-          if (absX > 6 || absY > 6) {
-            if (absX > absY) {
+          if (absX > 10 || absY > 10) {
+            // 横移動が明らかに優勢である場合のみ横スワイプとみなす (縦ブレへの許容度を高めてプレミアムな追従性を実現)
+            if (absX > absY * 1.5) {
               directionLocked = 'horizontal';
               isScroll = false;
               isSwiping = true;
-            } else {
+            } else if (absY > absX * 1.5) {
               directionLocked = 'vertical';
               isScroll = true;
               isSwiping = false;
@@ -1768,9 +1879,8 @@
         const threshold = window.innerWidth * 0.45; // 操作性と追従性を考慮した最適な45%閾値（反応しない問題を解決）
         
         if (currentX > threshold) {
-          el.style.transition = 'transform 0.2s ease-in';
-          el.style.transform = `translateX(${window.innerWidth}px)`;
-          setTimeout(() => this.consumeItem(id), 200);
+          // すぐに消費するのではなく、準備処理（数量確認）を呼び出す
+          this.prepareConsume(id, el);
         } else {
           el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
           el.style.transform = `translateX(0)`;
@@ -1818,7 +1928,7 @@
             <div style="font-weight:700; font-size:0.85rem;">${item.name}</div>
             <div class="history-date">消費日: ${new Date(item.archivedAt).toLocaleDateString()}</div>
           </div>
-          <button onclick="app.restoreItem(${item.id})" style="font-size:0.65rem; color:var(--primary); font-weight:800; border:1px solid var(--primary); padding:4px 8px; border-radius:8px;">戻す</button>
+          <button onclick="app.restoreItem('${item.id}')" style="font-size:0.65rem; color:var(--primary); font-weight:800; border:1px solid var(--primary); padding:4px 8px; border-radius:8px;">戻す</button>
         </div>
       `).join('');
     },
@@ -1986,7 +2096,7 @@
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button class="cal-btn edit" onclick="app.closeCalendarDetails(); app.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">編集</button>
-                    <button class="cal-btn consume" onclick="app.consumeItem(${item.id}); app.closeCalendarDetails();">消費</button>
+                    <button class="cal-btn consume" onclick="app.prepareConsume('${item.id}'); app.closeCalendarDetails();">消費</button>
                 </div>
             </div>
         `).join('');
@@ -2851,11 +2961,9 @@
     },
     async deleteFromEdit() {
       if (!this.editingId) return;
-      if (confirm('このアイテムを削除しますか？')) {
-        const id = this.editingId;
-        this.closeEntry();
-        await this.consumeItem(id);
-      }
+      const id = this.editingId;
+      this.closeEntry();
+      await this.prepareConsume(id);
     },
     closeEntry() { document.getElementById('entry-overlay').style.display = 'none'; document.getElementById('bottom-nav').style.display='flex'; },
 

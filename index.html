@@ -521,27 +521,39 @@
         <div style="display:flex; flex-direction:column; gap:16px;">
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📧</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント:</b> 設定画面でメールアドレスを入力してください。全てのデータはこのアドレスに紐づいて管理されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>アカウント・同期:</b> 設定画面でメールアドレスを入力して保存してください。全てのデータはこのアドレスに紐づき、GAS（Google Apps Script）経由でスプレッドシートと自動で安全に同期されるため、複数端末でのデータ共有も可能です。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📸</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影:</b> 下の「＋」ボタンからカメラを起動。賞味期限部分を写すだけでAIが自動入力します。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>AIカメラ撮影 (賞味期限読取):</b> 画面下部の「＋」ボタンから「カメラで読み取る」または「写真をアップロード」を選択し、賞味期限部分を写すだけで、AIが商品名と期限を自動で解析して一瞬で登録します。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">🎙️</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>音声でまとめて入力:</b> 画面下部の「＋」ボタンから「音声で入力」を選択し、「にんじん期限5月25日、牛乳期限5月30日」のように話しかけるだけで、AIがテキストを高度に判別して複数の食材を一括で登録します。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">👉</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>スワイプ消費:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると、1つずつ消費できます。完了すると「✔︎」が表示されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>数量選択スワイプ消費 & 個別削除:</b> 冷蔵庫リストのアイテムを<b>右にスワイプ</b>すると消費できます。在庫が複数個ある場合は、消費する数量を個別に選ぶダイアログが表示されます。また、アイテムをタップして開く編集画面の下部にある「削除する」ボタンからも削除可能です。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">📅</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー:</b> 「カレンダー」タブで、賞味期限が近い食品を日付ごとに一覧表示できます。タップするとアイテムの詳細が表示されます。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>カレンダー期限管理:</b> 「カレンダー」タブで期限が近い食材を日付ごとに一目で確認できます。日付セルをタップすると、その日に賞味期限を迎える食材の詳細が表示され、直接「消費」や「編集」が可能です。</p>
           </div>
           <div style="display:flex; gap:12px;">
             <div style="font-size:1.2rem;">🥗</div>
-            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>救出レシピ:</b> 期限が近い食材がある場合、「レシピ」画面右上の「更新🔄」ボタンを押すことでAIが最新レシピを提案します。</p>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>長持ちTIPS 💡 & 共有機能:</b> 「TIPS」サブタブでは、冷蔵庫の食材カテゴリーに合わせた鮮度保持のコツや長持ち裏ワザをアコーディオンUIで確認できます。ハートマークで「お気に入り」登録できるほか、「共有」ボタンでタイトルと説明文のみをスマートにテキスト共有できます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">🛒</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>買い物リスト ⭐ & 定番品登録:</b> 「買い物」サブタブでは、数量を指定して買うものを管理できます。完了したアイテムにチェックを入れると横線が入り、優先順位が自動で下に下がります。いつも買う「定番品 ⭐」はワンタップで買い物リストへ瞬時に追加できます。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div style="font-size:1.2rem;">🔄</div>
+            <p style="font-size:0.75rem; color:#475569; line-height:1.5;"><b>履歴の数量指定復元 (1ヶ月以内):</b> 設定画面の下部にある「消費履歴」には、消した日から1ヶ月以内の消費アイテムが表示されます。戻すボタンを押す際、複数個消費していた場合は冷蔵庫に「戻す数量」を指定（一部のみ復元）することができます。</p>
           </div>
           <div style="display:flex; gap:12px; background:#f0fdf4; padding:12px; border-radius:12px; border:1px solid #dcfce7;">
             <div style="font-size:1.2rem;">📱</div>
-            <p style="font-size:0.75rem; color:#166534; line-height:1.5;"><b>通知を有効にするには:</b> iOSの方はSafariで開き、<b>「共有ボタン（矢印）」</b>から<b>「ホーム画面に追加」</b>を行ってください。本物のアプリとして動作し、通知が受け取れるようになります。</p>
+            <p style="font-size:0.75rem; color:#166534; line-height:1.5;"><b>ホーム画面への追加（PWA）:</b> iOSの方はSafariで開き、<b>「共有ボタン（矢印）」</b>から<b>「ホーム画面に追加」</b>を行ってください。スタンドアロンのアプリとして動作し、期限直前のスマート通知（通知許可時）を受け取れるようになります。</p>
           </div>
         </div>
       </div>

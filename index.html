@@ -1397,10 +1397,13 @@
       }
 
       // キャンセル時はスワイプされたカードを元の位置に戻す
-      if (this.consumingCardEl) {
-        this.consumingCardEl.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
-        this.consumingCardEl.style.transform = 'translateX(0)';
-        setTimeout(() => this.consumingCardEl.dataset.swiping = 'false', 300);
+      const cardEl = this.consumingCardEl;
+      if (cardEl) {
+        cardEl.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
+        cardEl.style.transform = 'translateX(0)';
+        setTimeout(() => {
+          if (cardEl) cardEl.dataset.swiping = 'false';
+        }, 300);
       }
 
       this.consumingItemId = null;

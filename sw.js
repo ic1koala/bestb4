@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bestb4-v35';
+const CACHE_NAME = 'bestb4-v36';
 const ASSETS = [
   './index.html',
   './manifest.webmanifest'

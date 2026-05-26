@@ -238,7 +238,16 @@ function doPost(e) {
     var action = data.action;
     var email  = data.email;
     if (action === "add") {
-      sheet.appendRow([new Date(), email, data.name, data.cat || "その他", data.qty || 1, data.exp || "", ""]);
+      var archivedAtVal = "";
+      if (data.archivedAt) {
+        var parsedDate = new Date(data.archivedAt);
+        if (!isNaN(parsedDate.getTime())) {
+          archivedAtVal = parsedDate;
+        } else {
+          archivedAtVal = data.archivedAt;
+        }
+      }
+      sheet.appendRow([new Date(), email, data.name, data.cat || "その他", data.qty || 1, data.exp || "", archivedAtVal]);
     } else if (action === "update") {
       var id = parseInt(data.id);
       if (id) {

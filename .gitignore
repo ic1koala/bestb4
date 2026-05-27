@@ -70,3 +70,8 @@ Thumbs.db
 
 # Clasp local auth files
 .clasprc.json
+
+# Media files
+*.mp4
+*.MP4
+

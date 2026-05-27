@@ -711,6 +711,11 @@
           navigator.serviceWorker.register('./sw.js').catch(console.error);
         }
         
+        // オフライン時の同期イベントリスナーを追加
+        window.addEventListener('online', () => {
+          this.processSyncQueue();
+        });
+        
         this.updateEmailInputState();
         this.updateGasUrlInputState();
         this.updateNotifyBtnState();
@@ -718,6 +723,7 @@
         this.renderList();
         if (this.gasStorageUrl) {
           this.syncItemsInBackground();
+          this.loadBackupsFromGAS(); // 買い物・定番品のバックアップをクラウドから復元
         }
         
         console.log('BestB4 Initialized');
@@ -825,6 +831,7 @@
         safeStorage.set('bestb4_user_email', val);
         this.updateEmailInputState();
         this.renderList(); // Refresh list immediately with new email
+        this.loadBackupsFromGAS(); // 買い物・定番品バックアップをクラウドから復元
         this.showToast('メールアドレスを保存しました');
       }
     },
@@ -1128,6 +1135,7 @@
 
     saveShoppingList(list) {
       localStorage.setItem('bestb4_shopping_list', JSON.stringify(list));
+      this.backupShoppingList(list);
     },
 
     getAlwaysBuyList() {
@@ -1140,6 +1148,7 @@
 
     saveAlwaysBuyList(list) {
       localStorage.setItem('bestb4_always_buy_list', JSON.stringify(list));
+      this.backupAlwaysBuyList(list);
     },
 
     renderShoppingList() {
@@ -1449,21 +1458,13 @@
         }
 
         // GAS側のデータを更新（全量消費）
-        try {
-          fetch(this.gasStorageUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-              action: 'update',
-              email: this.userEmail,
-              id: item.id,
-              qty: item.qty, // 元の数量のまま
-              archivedAt: archived
-            })
-          });
-        } catch (e) {
-          console.error('GAS Sync Error (Full Consume):', e);
-        }
+        this.enqueueSyncAction('update', {
+          action: 'update',
+          email: this.userEmail,
+          id: item.id,
+          qty: item.qty, // 元の数量のまま
+          archivedAt: archived
+        });
       } else {
         // 一部消費（差し引き）
         const remainingQty = currentQty - qtyToConsume;
@@ -1482,37 +1483,26 @@
         toastMsg = `${item.name}を ${qtyToConsume} 個消費しました（残り ${remainingQty} 個）`;
 
         // GAS側のデータを同期（一部消費）
-        try {
-          // 元のアイテムのqtyを減らす
-          fetch(this.gasStorageUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-              action: 'update',
-              email: this.userEmail,
-              id: item.id,
-              qty: remainingQty,
-              archivedAt: '' // 冷蔵庫に残す
-            })
-          });
+        // 1. 元のアイテムのqtyを減らす
+        this.enqueueSyncAction('update', {
+          action: 'update',
+          email: this.userEmail,
+          id: item.id,
+          qty: remainingQty,
+          archivedAt: '' // 冷蔵庫に残す
+        });
 
-          // 新規消費履歴を追加
-          fetch(this.gasStorageUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({
-              action: 'add',
-              email: this.userEmail,
-              name: item.name,
-              cat: item.cat,
-              qty: qtyToConsume,
-              exp: item.exp,
-              archivedAt: newArchivedItem.archivedAt
-            })
-          });
-        } catch (e) {
-          console.error('GAS Sync Error (Partial Consume):', e);
-        }
+        // 2. 新規消費履歴を追加
+        this.enqueueSyncAction('add', {
+          action: 'add',
+          email: this.userEmail,
+          name: item.name,
+          cat: item.cat,
+          qty: qtyToConsume,
+          exp: item.exp,
+          archivedAt: newArchivedItem.archivedAt,
+          id: newArchivedItem.id
+        });
       }
 
       // キャッシュとローカルストレージを即座に同期して不整合を防止
@@ -1711,6 +1701,180 @@
       }
     },
 
+    enqueueSyncAction(action, payload) {
+      try {
+        const queueStr = localStorage.getItem('bestb4_sync_queue');
+        const queue = queueStr ? JSON.parse(queueStr) : [];
+        queue.push({
+          action: action,
+          payload: payload,
+          timestamp: Date.now()
+        });
+        localStorage.setItem('bestb4_sync_queue', JSON.stringify(queue));
+        this.processSyncQueue();
+      } catch (e) {
+        console.error('Failed to enqueue sync action:', e);
+      }
+    },
+
+    async processSyncQueue() {
+      if (this._isProcessingQueue) return;
+      if (!navigator.onLine || !this.gasStorageUrl || !this.userEmail) return;
+
+      this._isProcessingQueue = true;
+      console.log('Processing offline sync queue...');
+
+      try {
+        // 1. 冷蔵庫リスト関連のキュー処理
+        while (true) {
+          const queueStr = localStorage.getItem('bestb4_sync_queue');
+          const queue = queueStr ? JSON.parse(queueStr) : [];
+          if (queue.length === 0) break;
+
+          const currentAction = queue[0];
+          try {
+            await fetch(this.gasStorageUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify(currentAction.payload)
+            });
+            queue.shift();
+            localStorage.setItem('bestb4_sync_queue', JSON.stringify(queue));
+          } catch (fetchError) {
+            console.warn('Network error during sync queue processing, will retry later:', fetchError);
+            break;
+          }
+        }
+
+        // 2. 買い物リストと定番品の未同期バックアップ処理
+        if (localStorage.getItem('bestb4_shopping_unsynced') === 'true') {
+          const shoppingList = this.getShoppingList();
+          const success = await this.uploadShoppingBackupDirect(shoppingList);
+          if (success) {
+            localStorage.removeItem('bestb4_shopping_unsynced');
+          }
+        }
+
+        if (localStorage.getItem('bestb4_always_buy_unsynced') === 'true') {
+          const alwaysBuyList = this.getAlwaysBuyList();
+          const success = await this.uploadAlwaysBuyBackupDirect(alwaysBuyList);
+          if (success) {
+            localStorage.removeItem('bestb4_always_buy_unsynced');
+          }
+        }
+
+        // 全てのキューの処理完了後に最新状態をGASから引っ張る
+        const queueStr = localStorage.getItem('bestb4_sync_queue');
+        const queue = queueStr ? JSON.parse(queueStr) : [];
+        if (queue.length === 0) {
+          await this.syncItemsInBackground();
+        }
+      } catch (err) {
+        console.error('Error during queue processing:', err);
+      } finally {
+        this._isProcessingQueue = false;
+      }
+    },
+
+    async uploadShoppingBackupDirect(list) {
+      if (!this.userEmail || !this.gasStorageUrl) return false;
+      try {
+        await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'syncShopping',
+            email: this.userEmail,
+            list: list
+          })
+        });
+        return true;
+      } catch (e) {
+        console.error('Failed to upload shopping list backup:', e);
+        return false;
+      }
+    },
+
+    async uploadAlwaysBuyBackupDirect(list) {
+      if (!this.userEmail || !this.gasStorageUrl) return false;
+      try {
+        await fetch(this.gasStorageUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'syncAlwaysBuy',
+            email: this.userEmail,
+            list: list
+          })
+        });
+        return true;
+      } catch (e) {
+        console.error('Failed to upload always-buy list backup:', e);
+        return false;
+      }
+    },
+
+    async backupShoppingList(list) {
+      if (!this.userEmail || !this.gasStorageUrl) return;
+      if (navigator.onLine) {
+        const success = await this.uploadShoppingBackupDirect(list);
+        if (success) {
+          localStorage.removeItem('bestb4_shopping_unsynced');
+          return;
+        }
+      }
+      localStorage.setItem('bestb4_shopping_unsynced', 'true');
+    },
+
+    async backupAlwaysBuyList(list) {
+      if (!this.userEmail || !this.gasStorageUrl) return;
+      if (navigator.onLine) {
+        const success = await this.uploadAlwaysBuyBackupDirect(list);
+        if (success) {
+          localStorage.removeItem('bestb4_always_buy_unsynced');
+          return;
+        }
+      }
+      localStorage.setItem('bestb4_always_buy_unsynced', 'true');
+    },
+
+    async loadBackupsFromGAS() {
+      if (!this.userEmail || !this.gasStorageUrl) return;
+      try {
+        const url = `${this.gasStorageUrl}?email=${encodeURIComponent(this.userEmail.trim())}&action=getBackupData&_t=${Date.now()}`;
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = await resp.json();
+          let loadedAny = false;
+          
+          if (data.shoppingList && Array.isArray(data.shoppingList) && data.shoppingList.length > 0) {
+            const localShop = this.getShoppingList();
+            if (localShop.length === 0) {
+              localStorage.setItem('bestb4_shopping_list', JSON.stringify(data.shoppingList));
+              this.renderShoppingList();
+              loadedAny = true;
+            }
+          }
+          if (data.alwaysBuyList && Array.isArray(data.alwaysBuyList) && data.alwaysBuyList.length > 0) {
+            const localAlways = this.getAlwaysBuyList();
+            if (localAlways.length === 0) {
+              localStorage.setItem('bestb4_always_buy_list', JSON.stringify(data.alwaysBuyList));
+              this.renderShoppingList();
+              loadedAny = true;
+            }
+          }
+          if (loadedAny) {
+            this.showToast('✅ クラウドからバックアップデータを復元しました');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load backup data from GAS:', e);
+      }
+    },
+
     async syncItemsInBackground() {
       if (!this.userEmail || !this.gasStorageUrl) return;
       try {
@@ -1850,24 +2014,9 @@
       this.renderCalendar();
       this.showToast(isEdit ? 'アイテムを更新しました！' : 'アイテムを追加しました！');
 
-      try {
-        const payload = { action: isEdit ? 'update' : 'add', email: this.userEmail, id: tempId, name, cat, qty, exp };
-        
-        fetch(this.gasStorageUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload)
-        }).then(() => {
-          this.syncItemsInBackground();
-        }).catch(e => {
-          console.error('Optimistic sync post failed:', e);
-        });
-
-        this.processMailIntegration({ name, exp, qty });
-      } catch (e) {
-        console.error('Optimistic post dispatch failed:', e);
-      }
+      const payload = { action: isEdit ? 'update' : 'add', email: this.userEmail, id: tempId, name, cat, qty, exp };
+      this.enqueueSyncAction(isEdit ? 'update' : 'add', payload);
+      this.processMailIntegration({ name, exp, qty });
     },
 
     // initDB() { // IndexedDB removed
@@ -2147,22 +2296,20 @@
       if (!this.userEmail) return this.showToast('メールアドレスが設定されていません');
       if (!confirm('履歴をすべて削除しますか？')) return;
 
-      try {
-        const resp = await fetch(this.gasStorageUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({
-            action: 'clearHistory',
-            email: this.userEmail
-          })
-        });
+      // 1. 【楽観的更新】ローカルの履歴をすべて削除
+      const cachedItems = await this.getAllItems(true);
+      const activeItems = cachedItems.filter(i => !i.archivedAt);
+      this._itemsCache = activeItems;
+      this.saveLocalCache(activeItems);
 
-        this.showToast('履歴を削除しました');
-        this.renderHistory();
-      } catch (e) {
-        console.error('Clear History Error:', e);
-        this.showToast('履歴削除中にエラーが発生しました');
-      }
+      this.showToast('履歴を削除しました');
+      this.renderHistory();
+
+      // 2. キューに積んでGASと同期
+      this.enqueueSyncAction('clearHistory', {
+        action: 'clearHistory',
+        email: this.userEmail
+      });
     },
 
     async renderCalendar() {
@@ -2420,16 +2567,34 @@
 
       this.showToast('デモデータを追加中...');
       try {
+        const localItems = this.loadLocalCache() || [];
         for (const item of demoData) {
-          await fetch(this.gasStorageUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'add', email: this.userEmail, ...item, reg: new Date().toISOString() })
+          const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          const itemData = {
+            id: tempId,
+            name: item.name,
+            cat: item.cat,
+            qty: item.qty,
+            exp: item.exp,
+            reg: new Date().toISOString()
+          };
+          localItems.push(itemData);
+          
+          this.enqueueSyncAction('add', {
+            action: 'add',
+            email: this.userEmail,
+            id: tempId,
+            name: item.name,
+            cat: item.cat,
+            qty: item.qty,
+            exp: item.exp,
+            reg: itemData.reg
           });
         }
-        this.showToast('投入完了！同期されました');
-        setTimeout(() => this.renderList(), 500);
+        this._itemsCache = localItems;
+        this.saveLocalCache(localItems);
+        this.showToast('デモデータを追加しました！');
+        this.renderList();
         this.renderCalendar();
       } catch (e) {
         console.error('Demo Data Error:', e);
@@ -2583,19 +2748,15 @@
                 this.saveLocalCache(localItems);
                 this.renderList();
 
-                fetch(this.gasStorageUrl, {
-                  method: 'POST',
-                  mode: 'no-cors',
-                  headers: { 'Content-Type': 'text/plain' },
-                  body: JSON.stringify({
-                    action: 'add',
-                    email: this.userEmail,
-                    name: itemData.name,
-                    exp: itemData.exp,
-                    qty: 1,
-                    cat: itemData.cat,
-                    reg: itemData.reg
-                  })
+                this.enqueueSyncAction('add', {
+                  action: 'add',
+                  email: this.userEmail,
+                  id: itemData.id,
+                  name: itemData.name,
+                  exp: itemData.exp,
+                  qty: 1,
+                  cat: itemData.cat,
+                  reg: itemData.reg
                 });
 
                 successCount++;
@@ -2667,19 +2828,15 @@
                             this.saveLocalCache(localItems);
                             this.renderList();
 
-                            fetch(this.gasStorageUrl, {
-                              method: 'POST',
-                              mode: 'no-cors',
-                              headers: { 'Content-Type': 'text/plain' },
-                              body: JSON.stringify({
-                                action: 'add',
-                                email: this.userEmail,
-                                name: itemData.name,
-                                exp: itemData.exp,
-                                qty: 1,
-                                cat: itemData.cat,
-                                reg: itemData.reg
-                              })
+                            this.enqueueSyncAction('add', {
+                              action: 'add',
+                              email: this.userEmail,
+                              id: itemData.id,
+                              name: itemData.name,
+                              exp: itemData.exp,
+                              qty: 1,
+                              cat: itemData.cat,
+                              reg: itemData.reg
                             });
 
                             successCount++;
@@ -2888,19 +3045,15 @@
             this._itemsCache = localItems;
             this.saveLocalCache(localItems);
 
-            fetch(this.gasStorageUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({
-                action: 'add',
-                email: this.userEmail,
-                name: itemData.name,
-                exp: itemData.exp,
-                qty: itemData.qty,
-                cat: itemData.cat,
-                reg: itemData.reg
-              })
+            this.enqueueSyncAction('add', {
+              action: 'add',
+              email: this.userEmail,
+              id: itemData.id,
+              name: itemData.name,
+              exp: itemData.exp,
+              qty: itemData.qty,
+              cat: itemData.cat,
+              reg: itemData.reg
             });
             successCount++;
           }
